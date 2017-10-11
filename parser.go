@@ -42,7 +42,8 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 		}
 	} else {
 		cmd := exec.Command("youtube-dl", "-g", "-f mp4", vidurl)
-		stdoutStderr, err := cmd.CombinedOutput()
+		// stdoutStderr, err := cmd.CombinedOutput()
+		stdoutStderr, err := cmd.Output()
 		stdoutStderrStr := strings.TrimSpace(string(stdoutStderr))
 		if err == nil {
 			var expire int64

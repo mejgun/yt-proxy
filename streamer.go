@@ -24,7 +24,6 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 	r := <-qw
     fmt.Println(r)
 	if r.err == nil {
-		// url := "https://r2---sn-pivhx-n8me.googlevideo.com/videoplayback?requiressl=yes&initcwndbps=215000&gcr=ru&mime=video%2Fmp4&key=yt6&mt=1507612964&ratebypass=yes&dur=11495.015&mn=sn-pivhx-n8me&lmt=1507410342958115&ei=dlncWev3E8zqYfm0m6AF&ms=au&ipbits=0&pl=21&mv=m&source=youtube&ip=78.138.154.79&id=o-ADgW5efyBvuR5_jI9bjgph_Nt0ZPYF2fMavvIv_1nYlA&mm=31&expire=1507634646&itag=22&sparams=dur%2Cei%2Cgcr%2Cid%2Cinitcwndbps%2Cip%2Cipbits%2Citag%2Clmt%2Cmime%2Cmm%2Cmn%2Cms%2Cmv%2Cpl%2Cratebypass%2Crequiressl%2Csource%2Cexpire&signature=1A1E082D5749760CF0F929BD752F10A4FA550022.C1096456EF23883383519265C764A97D15E257E4"
 		request, _ := http.NewRequest("GET", r.url, nil)
 		r1, ok := req.Header["Range"]
 		if ok {
