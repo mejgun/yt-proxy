@@ -2,13 +2,23 @@ package main
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"net/url"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type Response struct {
+	url string
+	err error
+}
+
+type RChan struct {
+	url string
+	c   chan Response
+}
 
 type Lnk struct {
 	url    string
@@ -47,7 +57,6 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 					} else {
 						expire = t + 10800
 					}
-
 				} else {
 					expire = t + 10800
 				}
@@ -61,26 +70,47 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 	return
 }
 
-//func parseLinks()
-
-func main() {
-	/*c := make(chan int)
-	go func() { c <- 5 }()
-	b := <-c
-	close(c)
-	fmt.Println(b)
-	log.Fatal("test")*/
-	links = make(Links)
-	for i := 0; i < 300; i++ {
-		url := "https://www.youtube.com/watch?v=H0hsrEhz3zo"
-		//url := "https://vimeo.com/235305664"
-		stdoutStderr, err := getLink(url)
-		fmt.Printf("%s\n", stdoutStderr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		/*fmt.Println(links)
-		fmt.Println(time.Now().Unix())
-		fmt.Println(time.Now().Unix() + 10800)*/
+func parseLinks(c <-chan RChan) {
+	for {
+		r := <-c
+		url := r.url
+		rUrl, rErr := getLink(url)
+		//fmt.Println(rUrl)
+		//fmt.Println(rErr)
+		r.c <- Response{url: rUrl, err: rErr}
 	}
 }
+
+//
+//
+// func main() {
+// 	c := make(chan RChan)
+// 	/*c := make(chan int)
+// 	go func() { c <- 5 }()
+// 	b := <-c
+// 	close(c)
+// 	fmt.Println(b)
+// 	log.Fatal("test")*/
+// 	go parseLinks(c)
+// 	links = make(Links)
+// 	for i := 0; i < 5; i++ {
+// 		url := "https://www.youtube.com/watch?v=H0hsrEhz3zo"
+// 		qw := make(chan Response)
+// 		c <- RChan{url: url, c: qw}
+// 		r := <-qw
+// 		fmt.Println(r)
+// 		/*
+// 			//url := "https://vimeo.com/235305664"
+// 			stdoutStderr, err := getLink(url)
+// 			fmt.Printf("%s\n", stdoutStderr)
+// 			if err != nil {
+// 				log.Fatal(err)
+// 			}
+// 		*/
+// 		/*fmt.Println(links)
+// 		fmt.Println(time.Now().Unix())
+// 		fmt.Println(time.Now().Unix() + 10800)*/
+// 	}
+// 	log.Fatal("ok")
+// }
+//
