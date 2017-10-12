@@ -115,3 +115,4 @@ func parseLinks(c <-chan RChan) {
 // 	log.Fatal("ok")
 // }
 //
+//

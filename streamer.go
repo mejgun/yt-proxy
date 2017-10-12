@@ -56,7 +56,7 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 		io.Copy(w, res.Body)
 		//io.Copy(ioutil.Discard, res.Body)
 		/*for _, err := io.CopyN(w, res.Body, 640000); err == nil; {
-			fmt.Print(".")
+			//fmt.Print(".")
 		}*/
 		res.Body.Close()
 		fmt.Println("---")
