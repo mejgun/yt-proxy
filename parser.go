@@ -32,14 +32,15 @@ var links Links
 func getLink(vidurl string) (retUrl string, retErr error) {
 	t := time.Now().Unix()
 	vidurl = strings.TrimSpace(vidurl)
+	for k, v := range links {
+		if v.expire < t {
+			delete(links, k)
+		}
+	}
 	lnk, ok := links[vidurl]
 	if ok {
-		if lnk.expire > t {
-			retUrl = lnk.url
-			retErr = nil
-		} else {
-			delete(links, vidurl)
-		}
+		retUrl = lnk.url
+		retErr = nil
 	} else {
 		cmd := exec.Command("youtube-dl", "-g", "-f mp4", vidurl)
 		// stdoutStderr, err := cmd.CombinedOutput()
@@ -81,38 +82,3 @@ func parseLinks(c <-chan RChan) {
 		r.c <- Response{url: rUrl, err: rErr}
 	}
 }
-
-//
-//
-// func main() {
-// 	c := make(chan RChan)
-// 	/*c := make(chan int)
-// 	go func() { c <- 5 }()
-// 	b := <-c
-// 	close(c)
-// 	fmt.Println(b)
-// 	log.Fatal("test")*/
-// 	go parseLinks(c)
-// 	links = make(Links)
-// 	for i := 0; i < 5; i++ {
-// 		url := "https://www.youtube.com/watch?v=H0hsrEhz3zo"
-// 		qw := make(chan Response)
-// 		c <- RChan{url: url, c: qw}
-// 		r := <-qw
-// 		fmt.Println(r)
-// 		/*
-// 			//url := "https://vimeo.com/235305664"
-// 			stdoutStderr, err := getLink(url)
-// 			fmt.Printf("%s\n", stdoutStderr)
-// 			if err != nil {
-// 				log.Fatal(err)
-// 			}
-// 		*/
-// 		/*fmt.Println(links)
-// 		fmt.Println(time.Now().Unix())
-// 		fmt.Println(time.Now().Unix() + 10800)*/
-// 	}
-// 	log.Fatal("ok")
-// }
-//
-//

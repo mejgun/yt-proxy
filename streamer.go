@@ -12,17 +12,17 @@ import (
 
 var c chan RChan
 
-func HelloServer(w http.ResponseWriter, req *http.Request) {
+func PlayVideo(w http.ResponseWriter, req *http.Request) {
 	//fmt.Println(req.UserAgent())
 	//fmt.Println(req.Cookies())
-	fmt.Println(req.Write(os.Stdout))
+	//fmt.Println(req.Write(os.Stdout)) debug
 	url := req.URL.Path[len("/play/"):] + "?"
-    url += req.URL.RawQuery
-    fmt.Println(url)
+	url += req.URL.RawQuery
+	// fmt.Println(url)
 	qw := make(chan Response)
 	c <- RChan{url: url, c: qw}
 	r := <-qw
-    fmt.Println(r)
+	// fmt.Println(r)
 	if r.err == nil {
 		request, _ := http.NewRequest("GET", r.url, nil)
 		r1, ok := req.Header["Range"]
@@ -32,7 +32,7 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 		request.Header.Set("User-Agent", req.UserAgent())
 		tr := &http.Transport{}
 		client := &http.Client{Transport: tr}
-		fmt.Println(request)
+		// fmt.Println(request)
 		res, _ := client.Do(request)
 		defer res.Body.Close()
 		h1, ok := res.Header["Content-Length"]
@@ -52,21 +52,27 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 		}
 		// w.Header().Set("Close", "true")
 		//	fmt.Printf("%v\n", res.Header)
-		fmt.Printf("%+v\n", res)
+		// fmt.Printf("%+v\n", res) debug
 		io.Copy(w, res.Body)
 		//io.Copy(ioutil.Discard, res.Body)
 		/*for _, err := io.CopyN(w, res.Body, 640000); err == nil; {
 			//fmt.Print(".")
 		}*/
-		res.Body.Close()
-		fmt.Println("---")
+		// res.Body.Close()
+		fmt.Printf("%s disconnected\n", req.RemoteAddr)
 		//w.Close()
 	}
 }
 
+func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RemoteAddr, r.RequestURI)
+		fn(w, r)
+	}
+}
 func main() {
 	c = make(chan RChan)
-    links = make(Links)
+	links = make(Links)
 	go parseLinks(c)
 
 	var port string
@@ -75,8 +81,8 @@ func main() {
 	} else {
 		port = "8080"
 	}
-	http.HandleFunc("/", http.NotFound)
-	http.HandleFunc("/play/", HelloServer)
+	http.HandleFunc("/", makeHandler(http.NotFound))
+	http.HandleFunc("/play/", makeHandler(PlayVideo))
 	s := &http.Server{
 		Addr: ":" + port,
 	}
@@ -88,16 +94,3 @@ func main() {
 	}
 	//	http.ListenAndServe(":8181", nil)
 }
-
-//buf := make([]byte, 6400)
-/*for n, err := io.ReadAtLeast(res.Body, buf, 1); err == nil; {
-    //robots, _ := ioutil.ReadAll(res.Body)
-    //w.Write(robots)
-    // fmt.Print(n, " ")
-    buf = buf[:n]
-    //fmt.Printf("%v %s",n,buf)
-    fmt.Printf("%v ", n)
-    //w.Write(buf)
-    io.Copy(buf, w)
-
-}*/
