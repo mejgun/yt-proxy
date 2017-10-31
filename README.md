@@ -5,24 +5,19 @@ This README would normally document whatever steps are necessary to get your app
 ### What is this repository for? ###
 
 * Quick summary
-* Version
 * [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
-### How do I get set up? ###
+### Set up ###
 
 * Tested against Go 1.9.1
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+* No requirements
+* No configuration
+* No dependencies
+* No DB
 
-### Contribution guidelines ###
+### Build ###
 
-* Writing tests
-* Code review
-* Other guidelines
+* `go build`
 
 ### Who do I talk to? ###
 
