@@ -10,7 +10,8 @@ import (
 	"os"
 )
 
-const debug = true
+// const debug = true
+const debug = false
 
 const corFile = "corrupted.mp4"
 
@@ -81,7 +82,7 @@ func PlayVideo(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 	} else {
-		log.Println(r.err)
+		log.Println("yotube-dl error:",r.err)
 	}
 	// w.Header().Set("Close", "true")
 	//	fmt.Printf("%v\n", res.Header)
