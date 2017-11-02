@@ -32,17 +32,44 @@ var links Links
 func getLink(vidurl string) (retUrl string, retErr error) {
 	t := time.Now().Unix()
 	vidurl = strings.TrimSpace(vidurl)
+	splitted := strings.Split(vidurl, "?/?")
+	vidurl = splitted[0]
+	var videoFormat string
+	// defult values
+	vh := "720"
+	vf := "mp4"
+	if len(splitted) == 2 {
+		// videoFormat = "(mp4)[height<=720]"
+		tOpts, tErr := url.ParseQuery(splitted[1])
+		if tErr == nil {
+			if tvh, ok := tOpts["vh"]; ok {
+				if tvh[0] == "360" || tvh[0] == "480" || tvh[0] == "720" {
+					vh = tvh[0]
+				}
+			}
+			if tvf, ok := tOpts["vf"]; ok {
+				if tvf[0] == "mp4" {
+					vf = tvf[0]
+				}
+			}
+		}
+
+	}
+	videoFormat = "(" + vf + ")[height<=" + vh + "]"
 	for k, v := range links {
 		if v.expire < t {
 			delete(links, k)
 		}
 	}
-	lnk, ok := links[vidurl]
+	vidurlsize := vidurl + vf + vh
+	fmt.Println(vidurl)
+	fmt.Println(vidurlsize)
+	lnk, ok := links[vidurlsize]
 	if ok {
 		retUrl = lnk.url
 		retErr = nil
 	} else {
-		cmd := exec.Command("youtube-dl", "-g", "-f mp4", vidurl)
+		cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vidurl)
 		// stdoutStderr, err := cmd.CombinedOutput()
 		stdoutStderr, err := cmd.Output()
 		stdoutStderrStr := strings.TrimSpace(string(stdoutStderr))
@@ -63,7 +90,7 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 					expire = t + 10800
 				}
 			}
-			links[vidurl] = Lnk{url: stdoutStderrStr, expire: expire}
+			links[vidurlsize] = Lnk{url: stdoutStderrStr, expire: expire}
 			fmt.Printf("Added url %s expire %d\n", vidurl, expire)
 		}
 		retUrl = stdoutStderrStr

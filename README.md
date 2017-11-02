@@ -10,7 +10,6 @@ This README would normally document whatever steps are necessary to get your app
 ### Set up ###
 
 * Tested against Go 1.9.1
-* No requirements
 * No configuration
 * No dependencies
 * No DB
