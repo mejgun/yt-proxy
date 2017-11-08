@@ -91,7 +91,7 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 				}
 			}
 			links[vidurlsize] = Lnk{url: stdoutStderrStr, expire: expire}
-			fmt.Printf("Added url %s expire %d\n", vidurl, expire)
+			fmt.Printf("Added url %s (%s %s) expire %d\n", vidurl, vh, vf, expire)
 		}
 		retUrl = stdoutStderrStr
 		retErr = err
