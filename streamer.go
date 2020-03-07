@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	//"bytes"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,32 +14,30 @@ const debug = false
 
 const corFile = "corrupted.mp4"
 
-var c chan RChan
+var c chan rChan
 
 var corrupted []byte
 
 var filesize string
 
-func PlayVideo(w http.ResponseWriter, req *http.Request) {
-	//fmt.Println(req.UserAgent())
-	//fmt.Println(req.Cookies())
+func playVideo(w http.ResponseWriter, req *http.Request) {
+	// debugPrint(req.UserAgent())
+	// debugPrint(req.Cookies())
 	var success bool
 	success = false
-	if debug {
-		fmt.Println(req.Write(os.Stdout))
-	}
+	debugPrint(
+		req.Write(os.Stdout))
+
 	url := req.URL.Path[len("/play/"):] + "?"
 	url += req.URL.RawQuery
-	if debug {
-		fmt.Println(url)
-	}
-	qw := make(chan Response)
-	c <- RChan{url: url, c: qw}
+	debugPrint(url)
+
+	qw := make(chan response)
+	c <- rChan{url: url, c: qw}
 	r := <-qw
-	if debug {
-		fmt.Println(r.url)
-		fmt.Println(r.err)
-	}
+	debugPrint(r.url)
+	debugPrint(r.err)
+
 	if r.err == nil {
 		request, _ := http.NewRequest("GET", r.url, nil)
 		r1, ok := req.Header["Range"]
@@ -50,7 +47,7 @@ func PlayVideo(w http.ResponseWriter, req *http.Request) {
 		request.Header.Set("User-Agent", req.UserAgent())
 		tr := &http.Transport{}
 		client := &http.Client{Transport: tr}
-		// fmt.Println(request)
+		// debugPrint(request)
 		res, err := client.Do(request)
 		if err != nil {
 			log.Println(err)
@@ -82,17 +79,9 @@ func PlayVideo(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 	} else {
-		log.Println("yotube-dl error:",r.err)
+		log.Println("yotube-dl error:", r.err)
 	}
-	// w.Header().Set("Close", "true")
-	//	fmt.Printf("%v\n", res.Header)
-	//io.Copy(ioutil.Discard, res.Body)
-	/*for _, err := io.CopyN(w, res.Body, 640000); err == nil; {
-		//fmt.Print(".")
-	}*/
-	// res.Body.Close()
 
-	//w.Close()
 	if success == false {
 		w.Header().Set("Content-Length", filesize)
 		w.Header().Set("Content-Type", "video/mp4")
@@ -109,8 +98,8 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 }
 
 func main() {
-	c = make(chan RChan)
-	links = make(Links)
+	c = make(chan rChan)
+	links = make(linksT)
 	go parseLinks(c)
 
 	file, err := os.Open(corFile)
@@ -133,7 +122,7 @@ func main() {
 		port = "8080"
 	}
 	http.HandleFunc("/", makeHandler(http.NotFound))
-	http.HandleFunc("/play/", makeHandler(PlayVideo))
+	http.HandleFunc("/play/", makeHandler(playVideo))
 	s := &http.Server{
 		Addr: ":" + port,
 	}
@@ -143,5 +132,10 @@ func main() {
 	if err != nil {
 		log.Fatal("HTTP server start failed: ", err)
 	}
-	//	http.ListenAndServe(":8181", nil)
+}
+
+func debugPrint(s interface{}) {
+	if debug {
+		fmt.Println("DEBUG:", s)
+	}
 }

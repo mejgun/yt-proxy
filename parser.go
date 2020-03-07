@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	//"log"
 	"net/url"
 	"os/exec"
 	"strconv"
@@ -10,26 +9,26 @@ import (
 	"time"
 )
 
-type Response struct {
+type response struct {
 	url string
 	err error
 }
 
-type RChan struct {
+type rChan struct {
 	url string
-	c   chan Response
+	c   chan response
 }
 
-type Lnk struct {
+type lnkT struct {
 	url    string
 	expire int64
 }
 
-type Links map[string]Lnk
+type linksT map[string]lnkT
 
-var links Links
+var links linksT
 
-func getLink(vidurl string) (retUrl string, retErr error) {
+func getLink(vidurl string) (retURL string, retErr error) {
 	t := time.Now().Unix()
 	vidurl = strings.TrimSpace(vidurl)
 	splitted := strings.Split(vidurl, "?/?")
@@ -66,7 +65,7 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 	fmt.Println(vidurlsize)
 	lnk, ok := links[vidurlsize]
 	if ok {
-		retUrl = lnk.url
+		retURL = lnk.url
 		retErr = nil
 	} else {
 		cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vidurl)
@@ -90,22 +89,22 @@ func getLink(vidurl string) (retUrl string, retErr error) {
 					expire = t + 10800
 				}
 			}
-			links[vidurlsize] = Lnk{url: stdoutStderrStr, expire: expire}
+			links[vidurlsize] = lnkT{url: stdoutStderrStr, expire: expire}
 			fmt.Printf("Added url %s (%s %s) expire %d\n", vidurl, vh, vf, expire)
 		}
-		retUrl = stdoutStderrStr
+		retURL = stdoutStderrStr
 		retErr = err
 	}
 	return
 }
 
-func parseLinks(c <-chan RChan) {
+func parseLinks(c <-chan rChan) {
 	for {
 		r := <-c
 		url := r.url
-		rUrl, rErr := getLink(url)
-		//fmt.Println(rUrl)
-		//fmt.Println(rErr)
-		r.c <- Response{url: rUrl, err: rErr}
+		rURL, rErr := getLink(url)
+		debugPrint(rURL)
+		debugPrint(rErr)
+		r.c <- response{url: rURL, err: rErr}
 	}
 }
