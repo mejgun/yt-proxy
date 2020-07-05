@@ -21,13 +21,11 @@ var corrupted []byte
 var filesize string
 
 func playVideo(w http.ResponseWriter, req *http.Request) {
-	// debugPrint(req.UserAgent())
-	// debugPrint(req.Cookies())
 	var success bool
 	success = false
-	debugPrint(
-		req.Write(os.Stdout))
-
+	if debug {
+		req.Write(os.Stdout)
+	}
 	url := req.URL.Path[len("/play/"):] + "?"
 	url += req.URL.RawQuery
 	debugPrint(url)
@@ -47,15 +45,12 @@ func playVideo(w http.ResponseWriter, req *http.Request) {
 		request.Header.Set("User-Agent", req.UserAgent())
 		tr := &http.Transport{}
 		client := &http.Client{Transport: tr}
-		// debugPrint(request)
 		res, err := client.Do(request)
 		if err != nil {
 			log.Println(err)
 		}
 		defer res.Body.Close()
-		if debug {
-			fmt.Printf("%+v\n", res)
-		}
+		debugPrint(fmt.Sprintf("%+v\n", res))
 		h1, ok1 := res.Header["Content-Length"]
 		h2, ok2 := res.Header["Content-Type"]
 

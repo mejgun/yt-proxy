@@ -61,8 +61,7 @@ func getLink(vidurl string) (retURL string, retErr error) {
 		}
 	}
 	vidurlsize := vidurl + vf + vh
-	fmt.Println(vidurl)
-	fmt.Println(vidurlsize)
+	debugPrint(vidurlsize)
 	lnk, ok := links[vidurlsize]
 	if ok {
 		retURL = lnk.url
