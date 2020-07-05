@@ -4,7 +4,7 @@ This README would normally document whatever steps are necessary to get your app
 
 ### What is this repository for? ###
 
-* Quick summary
+* This is part of another project: https://github.com/mesb1/xupnpd_youtube
 * [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
 ### Set up ###
