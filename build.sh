@@ -2,5 +2,14 @@
 
 # https://github.com/golang/go/blob/master/src/go/build/syslist.go
 
-GOPATH=$(pwd) GOOS=linux GOARCH=amd64 go build -ldflags '-s -w' -o bin/amd64/yt-proxy
-GOPATH=$(pwd) GOOS=linux GOARCH=386 go build -ldflags '-s -w' -o bin/i386/yt-proxy
+OSLIST="aix android darwin dragonfly freebsd hurd illumos js linux nacl netbsd openbsd plan9 solaris windows zos "
+ARCHLIST="386 amd64 amd64p32 arm armbe arm64 arm64be ppc64 ppc64le mips mipsle mips64 mips64le mips64p32 mips64p32le ppc riscv riscv64 s390 s390x sparc sparc64 wasm "
+
+for OS in ${OSLIST}
+do
+    for ARCH in ${ARCHLIST}
+    do
+    echo ${OS}/${ARCH}
+    GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} go build -ldflags '-s -w' -o bin/yt-proxy-${OS}-${ARCH}
+    done
+done
