@@ -15,11 +15,6 @@ const appVersion = "0.5"
 const defaultVideoHeight = "720"
 const defaultVideoFormat = "mp4"
 
-type corruptedT struct {
-	file []byte
-	size int64
-}
-
 func main() {
 	var version bool
 	var enableDebug bool
@@ -86,29 +81,30 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 		res, err := client.Do(request)
 		if err != nil {
 			log.Println(err)
-		}
-		defer res.Body.Close()
-		debug("Response", fmt.Sprintf("%+v\n", res))
-		h1, ok1 := res.Header["Content-Length"]
-		h2, ok2 := res.Header["Content-Type"]
+		} else {
+			defer res.Body.Close()
+			debug("Response", fmt.Sprintf("%+v\n", res))
+			h1, ok1 := res.Header["Content-Length"]
+			h2, ok2 := res.Header["Content-Type"]
 
-		if ok1 && ok2 {
-			if h2[0] == "video/mp4" {
-				w.Header().Set("Content-Length", h1[0])
-				w.Header().Set("Content-Type", h2[0])
-				h3, ok := res.Header["Accept-Ranges"]
-				if ok {
-					w.Header().Set("Accept-Ranges", h3[0])
+			if ok1 && ok2 {
+				if h2[0] == "video/mp4" {
+					w.Header().Set("Content-Length", h1[0])
+					w.Header().Set("Content-Type", h2[0])
+					h3, ok := res.Header["Accept-Ranges"]
+					if ok {
+						w.Header().Set("Accept-Ranges", h3[0])
+					}
+					h4, ok := res.Header["Content-Range"]
+					if ok {
+						w.Header().Set("Content-Range", h4[0])
+					}
+					if res.StatusCode == 206 {
+						w.WriteHeader(http.StatusPartialContent)
+					}
+					io.Copy(w, res.Body)
+					success = true
 				}
-				h4, ok := res.Header["Content-Range"]
-				if ok {
-					w.Header().Set("Content-Range", h4[0])
-				}
-				if res.StatusCode == 206 {
-					w.WriteHeader(http.StatusPartialContent)
-				}
-				io.Copy(w, res.Body)
-				success = true
 			}
 		}
 	} else {

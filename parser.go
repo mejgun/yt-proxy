@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"log"
 	"net/url"
 	"os/exec"
@@ -32,32 +35,45 @@ type linksCache struct {
 
 type debugT func(string, interface{})
 
+type corruptedT struct {
+	file []byte
+	size int64
+}
+
 func youtubeDL(vURL, vHeight, vFormat string, debug debugT) (string, int64, error) {
 	// videoFormat = "(mp4)[height<=720]"
 	videoFormat := "(" + vFormat + ")[height<=" + vHeight + "]"
 	cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vURL)
-	// stdoutStderr, err := cmd.CombinedOutput()
-	stdoutStderr, err := cmd.Output()
-	stdoutStderrStr := strings.TrimSpace(string(stdoutStderr))
+	out, err := runCmd(cmd)
+	if err != nil {
+		return "", 0, err
+	}
+	output := strings.TrimSpace(string(out))
 	var expire int64
+	u, err := url.Parse(output)
 	if err == nil {
-		// err rewrited
-		u, err := url.Parse(stdoutStderrStr)
-		if err == nil {
-			m, _ := url.ParseQuery(u.RawQuery)
-			if e, ok := m["expire"]; ok {
-				e1, err1 := strconv.ParseInt(e[0], 10, 64)
-				if err1 == nil {
-					expire = e1
-				} else {
-					expire = 0
-				}
-			} else {
-				expire = 0
+		m, _ := url.ParseQuery(u.RawQuery)
+		if e, ok := m["expire"]; ok {
+			e1, err1 := strconv.ParseInt(e[0], 10, 64)
+			if err1 == nil {
+				expire = e1
 			}
 		}
 	}
-	return stdoutStderrStr, expire, err
+	return output, expire, err
+}
+
+func runCmd(cmd *exec.Cmd) (string, error) {
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+	if err != nil {
+		combinedErrStr := fmt.Sprintf("%s\n%s\n%s", err.Error(), outStr, errStr)
+		return "", errors.New(combinedErrStr)
+	}
+	return outStr, nil
 }
 
 func getLink(vidurl string, debug debugT, links *linksCache) (string, error) {
