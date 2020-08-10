@@ -10,15 +10,16 @@ import (
 	"os"
 )
 
+// TODO: add debug descr
+
 const appVersion = "0.5"
 
-const corFile = "corrupted.mp4"
+type corruptedT struct {
+	file []byte
+	size int64
+}
 
-var corrupted []byte
-
-var filesize string
-
-func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestChan, debug debugT) {
+func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestChan, debug debugT, errorVideo corruptedT) {
 	var success bool
 	success = false
 	debug(req)
@@ -75,9 +76,9 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 	}
 
 	if success == false {
-		w.Header().Set("Content-Length", filesize)
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", errorVideo.size))
 		w.Header().Set("Content-Type", "video/mp4")
-		w.Write(corrupted)
+		w.Write(errorVideo.file)
 	}
 	fmt.Printf("%s disconnected\n", req.RemoteAddr)
 }
@@ -85,11 +86,13 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 func main() {
 	var version bool
 	var enableDebug bool
-	var portInt int
+	var portInt uint
+	var errorVideoPath string
 
 	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
 	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
-	flag.IntVar(&portInt, "port", 8080, "listen port")
+	flag.UintVar(&portInt, "port", 8080, "listen port")
+	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
 	flag.Parse()
 	if version {
 		fmt.Println(appVersion)
@@ -100,19 +103,7 @@ func main() {
 	links = make(linksT)
 	debug := getDebugFunc(enableDebug)
 	go parseLinks(requests, debug)
-
-	file, err := os.Open(corFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fileinfo, err := file.Stat()
-	if err != nil {
-		log.Fatal(err)
-	}
-	filesize = fmt.Sprint(fileinfo.Size())
-	file.Close()
-
-	corrupted, err = ioutil.ReadFile(corFile)
+	errorVideo := readErrorVideo(errorVideoPath)
 
 	port := fmt.Sprintf("%d", portInt)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -121,14 +112,14 @@ func main() {
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.RemoteAddr, r.RequestURI)
-		playVideo(w, r, requests, debug)
+		playVideo(w, r, requests, debug, errorVideo)
 	})
 	s := &http.Server{
 		Addr: ":" + port,
 	}
 	s.SetKeepAlivesEnabled(true)
 	fmt.Printf("starting at *:%s\n", port)
-	err = s.ListenAndServe()
+	err := s.ListenAndServe()
 	if err != nil {
 		log.Fatal("HTTP server start failed: ", err)
 	}
@@ -151,4 +142,22 @@ func getDebugFunc(enabled bool) func(interface{}) {
 			fmt.Printf("DEBUG: %+v\n", s)
 		}
 	}
+}
+
+func readErrorVideo(path string) corruptedT {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fileinfo, err := file.Stat()
+	if err != nil {
+		log.Fatal(err)
+	}
+	filesize := fileinfo.Size()
+	file.Close()
+	corrupted, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return corruptedT{file: corrupted, size: filesize}
 }
