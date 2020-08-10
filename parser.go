@@ -26,7 +26,7 @@ type lnkT struct {
 
 type linksT map[string]lnkT
 
-type debugT func(interface{})
+type debugT func(string, interface{})
 
 var links linksT
 
@@ -63,7 +63,9 @@ func getLink(vidurl string, debug debugT) (retURL string, retErr error) {
 		}
 	}
 	vidurlsize := vidurl + vf + vh
-	debug(vidurlsize)
+	debug("Video URL", vidurl)
+	debug("Video format", vf)
+	debug("Video height", vh)
 	lnk, ok := links[vidurlsize]
 	if ok {
 		retURL = lnk.url

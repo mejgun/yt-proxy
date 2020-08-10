@@ -10,8 +10,6 @@ import (
 	"os"
 )
 
-// TODO: add debug descr
-
 const appVersion = "0.5"
 
 type corruptedT struct {
@@ -22,17 +20,15 @@ type corruptedT struct {
 func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestChan, debug debugT, errorVideo corruptedT) {
 	var success bool
 	success = false
-	debug(req)
+	debug("Request", req)
 
 	url := req.URL.Path[len("/play/"):] + "?"
 	url += req.URL.RawQuery
-	debug(url)
+	debug("Query", url)
 
 	qw := make(chan response)
 	requests <- requestChan{url: url, answerChan: qw}
 	r := <-qw
-	debug(r.url)
-	debug(r.err)
 
 	if r.err == nil {
 		request, _ := http.NewRequest("GET", r.url, nil)
@@ -48,7 +44,7 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 			log.Println(err)
 		}
 		defer res.Body.Close()
-		debug(fmt.Sprintf("%+v\n", res))
+		debug("Response", fmt.Sprintf("%+v\n", res))
 		h1, ok1 := res.Header["Content-Length"]
 		h2, ok2 := res.Header["Content-Type"]
 
@@ -130,16 +126,16 @@ func parseLinks(requests <-chan requestChan, debug debugT) {
 		r := <-requests
 		url := r.url
 		rURL, rErr := getLink(url, debug)
-		debug(rURL)
-		debug(rErr)
+		debug("Extractor returned URL", rURL)
+		debug("Extractor returned error", rErr)
 		r.answerChan <- response{url: rURL, err: rErr}
 	}
 }
 
-func getDebugFunc(enabled bool) func(interface{}) {
-	return func(s interface{}) {
+func getDebugFunc(enabled bool) debugT {
+	return func(d string, s interface{}) {
 		if enabled {
-			fmt.Printf("DEBUG: %+v\n", s)
+			fmt.Printf("[DEBUG] %s: %+v\n", d, s)
 		}
 	}
 }
