@@ -12,9 +12,53 @@ import (
 
 const appVersion = "0.5"
 
+const defaultVideoHeight = "720"
+const defaultVideoFormat = "mp4"
+
 type corruptedT struct {
 	file []byte
 	size int64
+}
+
+func main() {
+	var version bool
+	var enableDebug bool
+	var portInt uint
+	var errorVideoPath string
+	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
+	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
+	flag.UintVar(&portInt, "port", 8080, "listen port")
+	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
+	flag.Parse()
+	if version {
+		fmt.Println(appVersion)
+		os.Exit(0)
+	}
+	var requests chan requestChan
+	requests = make(chan requestChan)
+	var links linksCache
+	links.cache = make(map[string]lnkT)
+	debug := getDebugFunc(enableDebug)
+	go parseLinks(requests, debug, &links)
+	errorVideo := readErrorVideo(errorVideoPath)
+	port := fmt.Sprintf("%d", portInt)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RemoteAddr, r.RequestURI)
+		http.NotFound(w, r)
+	})
+	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RemoteAddr, r.RequestURI)
+		playVideo(w, r, requests, debug, errorVideo)
+	})
+	s := &http.Server{
+		Addr: ":" + port,
+	}
+	s.SetKeepAlivesEnabled(true)
+	fmt.Printf("starting at *:%s\n", port)
+	err := s.ListenAndServe()
+	if err != nil {
+		log.Fatal("HTTP server start failed: ", err)
+	}
 }
 
 func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestChan, debug debugT, errorVideo corruptedT) {
@@ -76,56 +120,14 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 		w.Header().Set("Content-Type", "video/mp4")
 		w.Write(errorVideo.file)
 	}
-	fmt.Printf("%s disconnected\n", req.RemoteAddr)
+	log.Printf("%s disconnected\n", req.RemoteAddr)
 }
 
-func main() {
-	var version bool
-	var enableDebug bool
-	var portInt uint
-	var errorVideoPath string
-
-	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
-	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
-	flag.UintVar(&portInt, "port", 8080, "listen port")
-	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
-	flag.Parse()
-	if version {
-		fmt.Println(appVersion)
-		os.Exit(0)
-	}
-	var requests chan requestChan
-	requests = make(chan requestChan)
-	links = make(linksT)
-	debug := getDebugFunc(enableDebug)
-	go parseLinks(requests, debug)
-	errorVideo := readErrorVideo(errorVideoPath)
-
-	port := fmt.Sprintf("%d", portInt)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
-		http.NotFound(w, r)
-	})
-	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
-		playVideo(w, r, requests, debug, errorVideo)
-	})
-	s := &http.Server{
-		Addr: ":" + port,
-	}
-	s.SetKeepAlivesEnabled(true)
-	fmt.Printf("starting at *:%s\n", port)
-	err := s.ListenAndServe()
-	if err != nil {
-		log.Fatal("HTTP server start failed: ", err)
-	}
-}
-
-func parseLinks(requests <-chan requestChan, debug debugT) {
+func parseLinks(requests <-chan requestChan, debug debugT, links *linksCache) {
 	for {
 		r := <-requests
 		url := r.url
-		rURL, rErr := getLink(url, debug)
+		rURL, rErr := getLink(url, debug, links)
 		debug("Extractor returned URL", rURL)
 		debug("Extractor returned error", rErr)
 		r.answerChan <- response{url: rURL, err: rErr}
