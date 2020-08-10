@@ -14,9 +14,9 @@ type response struct {
 	err error
 }
 
-type rChan struct {
-	url string
-	c   chan response
+type requestChan struct {
+	url        string
+	answerChan chan response
 }
 
 type lnkT struct {
@@ -26,9 +26,11 @@ type lnkT struct {
 
 type linksT map[string]lnkT
 
+type debugT func(interface{})
+
 var links linksT
 
-func getLink(vidurl string) (retURL string, retErr error) {
+func getLink(vidurl string, debug debugT) (retURL string, retErr error) {
 	t := time.Now().Unix()
 	vidurl = strings.TrimSpace(vidurl)
 	splitted := strings.Split(vidurl, "?/?")
@@ -61,7 +63,7 @@ func getLink(vidurl string) (retURL string, retErr error) {
 		}
 	}
 	vidurlsize := vidurl + vf + vh
-	debugPrint(vidurlsize)
+	debug(vidurlsize)
 	lnk, ok := links[vidurlsize]
 	if ok {
 		retURL = lnk.url
@@ -95,15 +97,4 @@ func getLink(vidurl string) (retURL string, retErr error) {
 		retErr = err
 	}
 	return
-}
-
-func parseLinks(c <-chan rChan) {
-	for {
-		r := <-c
-		url := r.url
-		rURL, rErr := getLink(url)
-		debugPrint(rURL)
-		debugPrint(rErr)
-		r.c <- response{url: rURL, err: rErr}
-	}
 }

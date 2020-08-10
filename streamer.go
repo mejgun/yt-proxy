@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,32 +10,28 @@ import (
 	"os"
 )
 
-// const debug = true
-const debug = false
+const appVersion = "0.5"
 
 const corFile = "corrupted.mp4"
-
-var c chan rChan
 
 var corrupted []byte
 
 var filesize string
 
-func playVideo(w http.ResponseWriter, req *http.Request) {
+func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestChan, debug debugT) {
 	var success bool
 	success = false
-	if debug {
-		req.Write(os.Stdout)
-	}
+	debug(req)
+
 	url := req.URL.Path[len("/play/"):] + "?"
 	url += req.URL.RawQuery
-	debugPrint(url)
+	debug(url)
 
 	qw := make(chan response)
-	c <- rChan{url: url, c: qw}
+	requests <- requestChan{url: url, answerChan: qw}
 	r := <-qw
-	debugPrint(r.url)
-	debugPrint(r.err)
+	debug(r.url)
+	debug(r.err)
 
 	if r.err == nil {
 		request, _ := http.NewRequest("GET", r.url, nil)
@@ -50,7 +47,7 @@ func playVideo(w http.ResponseWriter, req *http.Request) {
 			log.Println(err)
 		}
 		defer res.Body.Close()
-		debugPrint(fmt.Sprintf("%+v\n", res))
+		debug(fmt.Sprintf("%+v\n", res))
 		h1, ok1 := res.Header["Content-Length"]
 		h2, ok2 := res.Header["Content-Type"]
 
@@ -85,17 +82,24 @@ func playVideo(w http.ResponseWriter, req *http.Request) {
 	fmt.Printf("%s disconnected\n", req.RemoteAddr)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
-		fn(w, r)
-	}
-}
-
 func main() {
-	c = make(chan rChan)
+	var version bool
+	var enableDebug bool
+	var portInt int
+
+	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
+	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
+	flag.IntVar(&portInt, "port", 8080, "listen port")
+	flag.Parse()
+	if version {
+		fmt.Println(appVersion)
+		os.Exit(0)
+	}
+	var requests chan requestChan
+	requests = make(chan requestChan)
 	links = make(linksT)
-	go parseLinks(c)
+	debug := getDebugFunc(enableDebug)
+	go parseLinks(requests, debug)
 
 	file, err := os.Open(corFile)
 	if err != nil {
@@ -110,14 +114,15 @@ func main() {
 
 	corrupted, err = ioutil.ReadFile(corFile)
 
-	var port string
-	if len(os.Args) == 2 {
-		port = os.Args[1]
-	} else {
-		port = "8080"
-	}
-	http.HandleFunc("/", makeHandler(http.NotFound))
-	http.HandleFunc("/play/", makeHandler(playVideo))
+	port := fmt.Sprintf("%d", portInt)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RemoteAddr, r.RequestURI)
+		http.NotFound(w, r)
+	})
+	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RemoteAddr, r.RequestURI)
+		playVideo(w, r, requests, debug)
+	})
 	s := &http.Server{
 		Addr: ":" + port,
 	}
@@ -129,8 +134,21 @@ func main() {
 	}
 }
 
-func debugPrint(s interface{}) {
-	if debug {
-		fmt.Println("DEBUG:", s)
+func parseLinks(requests <-chan requestChan, debug debugT) {
+	for {
+		r := <-requests
+		url := r.url
+		rURL, rErr := getLink(url, debug)
+		debug(rURL)
+		debug(rErr)
+		r.answerChan <- response{url: rURL, err: rErr}
+	}
+}
+
+func getDebugFunc(enabled bool) func(interface{}) {
+	return func(s interface{}) {
+		if enabled {
+			fmt.Printf("DEBUG: %+v\n", s)
+		}
 	}
 }
