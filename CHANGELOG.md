@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## Added
+- Clearer debug
+- Flags (CLI options): debug, error video file, port, version
+## Removed
+- Port passing as argument
+
+## 0.4.0 - 2020-08-03
+- technical update
 
 ## 0.3.0 - 2017-11-03
 ### Added
