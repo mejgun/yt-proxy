@@ -10,6 +10,6 @@ do
     for ARCH in ${ARCHLIST}
     do
     echo ${OS}/${ARCH}
-    GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} go build -ldflags '-s -w' -o bin/yt-proxy-${OS}-${ARCH} 2>&1 > /dev/null
+    GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} go build -ldflags '-s -w' -o bin/yt-proxy-${OS}-${ARCH} > /dev/null 2>&1
     done
 done
