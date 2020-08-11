@@ -20,14 +20,12 @@ func main() {
 	var enableDebug bool
 	var portInt uint
 	var errorVideoPath string
-	var youtubedl bool
 	var customdl string
 	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
 	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
 	flag.UintVar(&portInt, "port", 8080, "listen port")
 	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
-	flag.BoolVar(&youtubedl, "youtube-dl", true, "use youtube-dl as url extractor")
-	flag.StringVar(&customdl, "custom-extractor", "", "use custom url extractor")
+	flag.StringVar(&customdl, "custom-extractor", "", "use custom url extractor, will be called like this: program_name url video_height video_format")
 	flag.Parse()
 	if version {
 		fmt.Println(appVersion)

@@ -87,7 +87,7 @@ func runCmd(cmd *exec.Cmd) (string, error) {
 		combinedErrStr := fmt.Sprintf("%s\n%s\n%s", err.Error(), outStr, errStr)
 		return "", errors.New(combinedErrStr)
 	}
-	return strings.TrimSpace(outStr), nil
+	return outStr, nil
 }
 
 func getLink(vidurl string, debug debugT, links *linksCache, extractor extractorF) (string, error) {
