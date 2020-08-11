@@ -40,27 +40,38 @@ type corruptedT struct {
 	size int64
 }
 
-func youtubeDL(vURL, vHeight, vFormat string, debug debugT) (string, int64, error) {
-	// videoFormat = "(mp4)[height<=720]"
-	videoFormat := "(" + vFormat + ")[height<=" + vHeight + "]"
-	cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vURL)
-	out, err := runCmd(cmd)
-	if err != nil {
-		return "", 0, err
-	}
-	output := strings.TrimSpace(string(out))
-	var expire int64
-	u, err := url.Parse(output)
-	if err == nil {
-		m, _ := url.ParseQuery(u.RawQuery)
-		if e, ok := m["expire"]; ok {
-			e1, err1 := strconv.ParseInt(e[0], 10, 64)
-			if err1 == nil {
-				expire = e1
+type extractorF func(string, string, string, debugT) (string, int64, error)
+
+func getYTDL() extractorF {
+	return func(vURL, vHeight, vFormat string, debug debugT) (string, int64, error) {
+		// videoFormat = "(mp4)[height<=720]"
+		videoFormat := "(" + vFormat + ")[height<=" + vHeight + "]"
+		cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vURL)
+		out, err := runCmd(cmd)
+		if err != nil {
+			return "", 0, err
+		}
+		var expire int64
+		u, err := url.Parse(out)
+		if err == nil {
+			m, _ := url.ParseQuery(u.RawQuery)
+			if e, ok := m["expire"]; ok {
+				e1, err1 := strconv.ParseInt(e[0], 10, 64)
+				if err1 == nil {
+					expire = e1
+				}
 			}
 		}
+		return out, expire, err
 	}
-	return output, expire, err
+}
+
+func getCustomDL(path string) extractorF {
+	return func(vURL, vHeight, vFormat string, debug debugT) (string, int64, error) {
+		cmd := exec.Command(path, vURL, vHeight, vFormat)
+		out, err := runCmd(cmd)
+		return out, 0, err
+	}
 }
 
 func runCmd(cmd *exec.Cmd) (string, error) {
@@ -68,15 +79,18 @@ func runCmd(cmd *exec.Cmd) (string, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-	outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+	toS := func(s bytes.Buffer) string {
+		return strings.TrimSpace(string(s.Bytes()))
+	}
+	outStr, errStr := toS(stdout), toS(stderr)
 	if err != nil {
 		combinedErrStr := fmt.Sprintf("%s\n%s\n%s", err.Error(), outStr, errStr)
 		return "", errors.New(combinedErrStr)
 	}
-	return outStr, nil
+	return strings.TrimSpace(outStr), nil
 }
 
-func getLink(vidurl string, debug debugT, links *linksCache) (string, error) {
+func getLink(vidurl string, debug debugT, links *linksCache, extractor extractorF) (string, error) {
 	now := time.Now().Unix()
 	vidurl = strings.TrimSpace(vidurl)
 	splitted := strings.Split(vidurl, "?/?")
@@ -116,7 +130,7 @@ func getLink(vidurl string, debug debugT, links *linksCache) (string, error) {
 	if ok {
 		return lnk.url, nil
 	}
-	url, expire, err := youtubeDL(vidurl, vh, vf, debug)
+	url, expire, err := extractor(vidurl, vh, vf, debug)
 	if expire == 0 {
 		expire = now + 10800
 	}

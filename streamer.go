@@ -20,21 +20,31 @@ func main() {
 	var enableDebug bool
 	var portInt uint
 	var errorVideoPath string
+	var youtubedl bool
+	var customdl string
 	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
 	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
 	flag.UintVar(&portInt, "port", 8080, "listen port")
 	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
+	flag.BoolVar(&youtubedl, "youtube-dl", true, "use youtube-dl as url extractor")
+	flag.StringVar(&customdl, "custom-extractor", "", "use custom url extractor")
 	flag.Parse()
 	if version {
 		fmt.Println(appVersion)
 		os.Exit(0)
+	}
+	var extractor extractorF
+	if len(customdl) > 0 {
+		extractor = getCustomDL(customdl)
+	} else {
+		extractor = getYTDL()
 	}
 	var requests chan requestChan
 	requests = make(chan requestChan)
 	var links linksCache
 	links.cache = make(map[string]lnkT)
 	debug := getDebugFunc(enableDebug)
-	go parseLinks(requests, debug, &links)
+	go parseLinks(requests, debug, &links, extractor)
 	errorVideo := readErrorVideo(errorVideoPath)
 	port := fmt.Sprintf("%d", portInt)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +118,7 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 			}
 		}
 	} else {
-		log.Println("yotube-dl error:", r.err)
+		log.Println("URL extractor error:", r.err)
 	}
 
 	if success == false {
@@ -119,11 +129,11 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 	log.Printf("%s disconnected\n", req.RemoteAddr)
 }
 
-func parseLinks(requests <-chan requestChan, debug debugT, links *linksCache) {
+func parseLinks(requests <-chan requestChan, debug debugT, links *linksCache, extractor extractorF) {
 	for {
 		r := <-requests
 		url := r.url
-		rURL, rErr := getLink(url, debug, links)
+		rURL, rErr := getLink(url, debug, links, extractor)
 		debug("Extractor returned URL", rURL)
 		debug("Extractor returned error", rErr)
 		r.answerChan <- response{url: rURL, err: rErr}
