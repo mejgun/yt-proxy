@@ -90,28 +90,9 @@ func runCmd(cmd *exec.Cmd) (string, error) {
 	return outStr, nil
 }
 
-func getLink(vidurl string, debug debugT, links *linksCache, extractor extractorF) (string, error) {
+func getLink(query string, debug debugT, links *linksCache, extractor extractorF) (string, error) {
 	now := time.Now().Unix()
-	vidurl = strings.TrimSpace(vidurl)
-	splitted := strings.Split(vidurl, "?/?")
-	vidurl = splitted[0]
-	vh := defaultVideoHeight
-	vf := defaultVideoFormat
-	if len(splitted) == 2 {
-		tOpts, tErr := url.ParseQuery(splitted[1])
-		if tErr == nil {
-			if tvh, ok := tOpts["vh"]; ok {
-				if tvh[0] == "360" || tvh[0] == "480" || tvh[0] == "720" {
-					vh = tvh[0]
-				}
-			}
-			if tvf, ok := tOpts["vf"]; ok {
-				if tvf[0] == "mp4" {
-					vf = tvf[0]
-				}
-			}
-		}
-	}
+	vidurl, vh, vf := parseQuery(query)
 	links.Lock()
 	for k, v := range links.cache {
 		if v.expire < now {
@@ -142,4 +123,29 @@ func getLink(vidurl string, debug debugT, links *linksCache, extractor extractor
 		return url, nil
 	}
 	return "", err
+}
+
+func parseQuery(query string) (vURL, vh, vf string) {
+	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
+	splitted := strings.Split(query, "?/?")
+	vURL = splitted[0]
+	vh = defaultVideoHeight
+	vf = defaultVideoFormat
+	if len(splitted) != 2 {
+		return
+	}
+	tOpts, tErr := url.ParseQuery(splitted[1])
+	if tErr == nil {
+		if tvh, ok := tOpts["vh"]; ok {
+			if tvh[0] == "360" || tvh[0] == "480" || tvh[0] == "720" {
+				vh = tvh[0]
+			}
+		}
+		if tvf, ok := tOpts["vf"]; ok {
+			if tvf[0] == "mp4" {
+				vf = tvf[0]
+			}
+		}
+	}
+	return
 }

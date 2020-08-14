@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-const appVersion = "0.5"
+const appVersion = "0.6"
 
 const defaultVideoHeight = "720"
 const defaultVideoFormat = "mp4"
@@ -68,13 +68,10 @@ func playVideo(w http.ResponseWriter, req *http.Request, requests chan requestCh
 	var success bool
 	success = false
 	debug("Request", req)
-
-	url := req.URL.Path[len("/play/"):] + "?"
-	url += req.URL.RawQuery
-	debug("Query", url)
+	debug("Query", req.URL)
 
 	qw := make(chan response)
-	requests <- requestChan{url: url, answerChan: qw}
+	requests <- requestChan{url: req.URL.String(), answerChan: qw}
 	r := <-qw
 
 	if r.err == nil {
