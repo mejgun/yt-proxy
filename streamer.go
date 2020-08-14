@@ -23,12 +23,14 @@ func main() {
 	var version bool
 	var enableDebug bool
 	var enableErrorHeaders bool
+	var ignoreMissingHeaders bool
 	var portInt uint
 	var errorVideoPath string
 	var customdl string
 	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
 	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
 	flag.BoolVar(&enableErrorHeaders, "error-headers", false, "show errors in headers (insecure)")
+	flag.BoolVar(&ignoreMissingHeaders, "ignore-missing-headers", false, "not strictly check video headers")
 	flag.UintVar(&portInt, "port", 8080, "listen port")
 	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
 	flag.StringVar(&customdl, "custom-extractor", "", "use custom url extractor, will be called like this: program_name url video_height video_format")
@@ -58,7 +60,7 @@ func main() {
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.RemoteAddr, r.RequestURI)
-		playVideo(w, r, requests, debug, sendErrorVideo)
+		playVideo(w, r, requests, debug, sendErrorVideo, !ignoreMissingHeaders)
 	})
 	s := &http.Server{
 		Addr: ":" + port,
@@ -76,7 +78,8 @@ func playVideo(
 	req *http.Request,
 	requests chan requestChan,
 	debug debugF,
-	sendErrorVideo sendErrorVideoF) {
+	sendErrorVideo sendErrorVideoF,
+	headersStrictCheck bool) {
 	debug("Request", req)
 	debug("Query", req.URL)
 	fail := func(str string, err error) {
@@ -86,7 +89,6 @@ func playVideo(
 	qw := make(chan response)
 	requests <- requestChan{url: req.URL.String(), answerChan: qw}
 	r := <-qw
-
 	if r.err != nil {
 		fail("URL extractor error:", r.err)
 		return
@@ -110,21 +112,27 @@ func playVideo(
 	defer res.Body.Close()
 	debug("Response", res)
 	h1, ok := res.Header["Content-Length"]
-	if !ok {
+	if !ok && headersStrictCheck {
 		fail("Proxying error", errors.New("No Content-Length header"))
 		return
 	}
+	if ok {
+		w.Header().Set("Content-Length", h1[0])
+	}
 	h2, ok := res.Header["Content-Type"]
-	if !ok {
+	if !ok && headersStrictCheck {
 		fail("Proxying error", errors.New("No Content-Type header"))
 		return
 	}
-	if h2[0] != "video/mp4" {
-		fail("Proxying error", errors.New("Content-Type is not video/mp4"))
-		return
+	if headersStrictCheck {
+		if h2[0] != "video/mp4" {
+			fail("Proxying error", errors.New("Content-Type is not video/mp4"))
+			return
+		}
 	}
-	w.Header().Set("Content-Length", h1[0])
-	w.Header().Set("Content-Type", h2[0])
+	if ok {
+		w.Header().Set("Content-Type", h2[0])
+	}
 	if h3, ok := res.Header["Accept-Ranges"]; ok {
 		w.Header().Set("Accept-Ranges", h3[0])
 	}
