@@ -6,6 +6,9 @@ var testPairs = map[string][3]string{
 	"/play/youtu.be/jNQXAC9IVRw?/?vh=360&vf=mp4": {"youtu.be/jNQXAC9IVRw", "360", "mp4"},
 	"/play/youtu.be/jNQXAC9IVRw?/?vh=720?vf=avi": {"youtu.be/jNQXAC9IVRw", "720", defaultVideoFormat},
 	"/play/youtu.be/jNQXAC9IVRw":                 {"youtu.be/jNQXAC9IVRw", defaultVideoHeight, defaultVideoFormat},
+	"/play/youtu.be/jNQXAC9IVRw?/?":              {"youtu.be/jNQXAC9IVRw", defaultVideoHeight, defaultVideoFormat},
+	"/play/youtu.be/jNQXAC9IVRw?/?vf=avi":        {"youtu.be/jNQXAC9IVRw", defaultVideoHeight, defaultVideoFormat},
+	"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4":        {"youtu.be/jNQXAC9IVRw", defaultVideoHeight, "mp4"},
 }
 
 func TestParseQuery(t *testing.T) {

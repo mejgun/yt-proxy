@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os/exec"
 	"strconv"
@@ -33,17 +34,19 @@ type linksCache struct {
 	cache map[string]lnkT
 }
 
-type debugT func(string, interface{})
+type debugF func(string, interface{})
 
 type corruptedT struct {
 	file []byte
 	size int64
 }
 
-type extractorF func(string, string, string, debugT) (string, int64, error)
+type extractorF func(string, string, string, debugF) (string, int64, error)
+
+type sendErrorVideoF func(http.ResponseWriter, error)
 
 func getYTDL() extractorF {
-	return func(vURL, vHeight, vFormat string, debug debugT) (string, int64, error) {
+	return func(vURL, vHeight, vFormat string, debug debugF) (string, int64, error) {
 		// videoFormat = "(mp4)[height<=720]"
 		videoFormat := "(" + vFormat + ")[height<=" + vHeight + "]"
 		cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vURL)
@@ -67,7 +70,7 @@ func getYTDL() extractorF {
 }
 
 func getCustomDL(path string) extractorF {
-	return func(vURL, vHeight, vFormat string, debug debugT) (string, int64, error) {
+	return func(vURL, vHeight, vFormat string, debug debugF) (string, int64, error) {
 		cmd := exec.Command(path, vURL, vHeight, vFormat)
 		out, err := runCmd(cmd)
 		return out, 0, err
@@ -90,7 +93,7 @@ func runCmd(cmd *exec.Cmd) (string, error) {
 	return outStr, nil
 }
 
-func getLink(query string, debug debugT, links *linksCache, extractor extractorF) (string, error) {
+func getLink(query string, debug debugF, links *linksCache, extractor extractorF) (string, error) {
 	now := time.Now().Unix()
 	vidurl, vh, vf := parseQuery(query)
 	links.Lock()
@@ -113,7 +116,7 @@ func getLink(query string, debug debugT, links *linksCache, extractor extractorF
 	}
 	url, expire, err := extractor(vidurl, vh, vf, debug)
 	if expire == 0 {
-		expire = now + 10800
+		expire = now + defaultExpireTime
 	}
 	if err == nil {
 		links.Lock()
