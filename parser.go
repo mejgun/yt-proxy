@@ -41,6 +41,17 @@ type corruptedT struct {
 	size int64
 }
 
+type flagsT struct {
+	version              bool
+	enableDebug          bool
+	enableErrorHeaders   bool
+	ignoreMissingHeaders bool
+	ignoreSSLErrors      bool
+	portInt              uint
+	errorVideoPath       string
+	customdl             string
+}
+
 type extractorF func(string, string, string, debugF) (string, int64, error)
 
 type sendErrorVideoF func(http.ResponseWriter, error)
