@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -24,13 +25,15 @@ func main() {
 	var enableDebug bool
 	var enableErrorHeaders bool
 	var ignoreMissingHeaders bool
+	var ignoreSSLErrors bool
 	var portInt uint
 	var errorVideoPath string
 	var customdl string
 	flag.BoolVar(&version, "version", false, "prints current yt-proxy version")
 	flag.BoolVar(&enableDebug, "debug", false, "turn on debug")
 	flag.BoolVar(&enableErrorHeaders, "error-headers", false, "show errors in headers (insecure)")
-	flag.BoolVar(&ignoreMissingHeaders, "ignore-missing-headers", false, "not strictly check video headers")
+	flag.BoolVar(&ignoreMissingHeaders, "ignore-missing-headers", false, "do not strictly check video headers")
+	flag.BoolVar(&ignoreSSLErrors, "ignore-ssl-errors", false, "ignore video server SSL  errors (insecure)")
 	flag.UintVar(&portInt, "port", 8080, "listen port")
 	flag.StringVar(&errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
 	flag.StringVar(&customdl, "custom-extractor", "", "use custom url extractor, will be called like this: program_name url video_height video_format")
@@ -52,6 +55,7 @@ func main() {
 	debug := getDebugFunc(enableDebug)
 	errorVideo := readErrorVideo(errorVideoPath)
 	sendErrorVideo := getSendErrorVideoFunc(enableErrorHeaders, errorVideo)
+	httpRequest := getDoRequestFunc(ignoreSSLErrors)
 	go parseLinks(requests, debug, &links, extractor)
 	port := fmt.Sprintf("%d", portInt)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +64,7 @@ func main() {
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.RemoteAddr, r.RequestURI)
-		playVideo(w, r, requests, debug, sendErrorVideo, !ignoreMissingHeaders)
+		playVideo(w, r, requests, debug, sendErrorVideo, !ignoreMissingHeaders, httpRequest)
 	})
 	s := &http.Server{
 		Addr: ":" + port,
@@ -79,7 +83,8 @@ func playVideo(
 	requests chan requestChan,
 	debug debugF,
 	sendErrorVideo sendErrorVideoF,
-	headersStrictCheck bool) {
+	headersStrictCheck bool,
+	httpRequest doRequestF) {
 	debug("Request", req)
 	debug("Query", req.URL)
 	fail := func(str string, err error) {
@@ -102,9 +107,7 @@ func playVideo(
 		request.Header.Set("Range", r1[0])
 	}
 	request.Header.Set("User-Agent", req.UserAgent())
-	tr := &http.Transport{}
-	client := &http.Client{Transport: tr}
-	res, err := client.Do(request)
+	res, err := httpRequest(request)
 	if err != nil {
 		fail("Proxying error", err)
 		return
@@ -176,6 +179,19 @@ func getSendErrorVideoFunc(errorHeaders bool, errorVideo corruptedT) sendErrorVi
 			}
 		}
 		w.Write(errorVideo.file)
+	}
+}
+
+func getDoRequestFunc(ignoreSSLErrors bool) doRequestF {
+	var tr *http.Transport
+	if ignoreSSLErrors {
+		tr = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	} else {
+		tr = &http.Transport{}
+	}
+	return func(request *http.Request) (*http.Response, error) {
+		client := &http.Client{Transport: tr}
+		return client.Do(request)
 	}
 }
 

@@ -45,6 +45,8 @@ type extractorF func(string, string, string, debugF) (string, int64, error)
 
 type sendErrorVideoF func(http.ResponseWriter, error)
 
+type doRequestF func(*http.Request) (*http.Response, error)
+
 func getYTDL() extractorF {
 	return func(vURL, vHeight, vFormat string, debug debugF) (string, int64, error) {
 		// videoFormat = "(mp4)[height<=720]"
