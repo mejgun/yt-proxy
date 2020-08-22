@@ -2,6 +2,9 @@
 
 # https://github.com/golang/go/blob/master/src/go/build/syslist.go
 
+BinDir="bin"
+FilePrefix="yt-proxy"
+
 OSListStr="aix android darwin dragonfly freebsd hurd illumos js linux nacl netbsd openbsd plan9 solaris windows zos"
 OSList=($OSListStr)
 
@@ -15,7 +18,9 @@ do
     for ARCH in ${ArchListStr}
     do
         echo $Total ${OS}/${ARCH}
-        GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} go build -ldflags '-s -w' -o bin/yt-proxy-${OS}-${ARCH} > /dev/null 2>&1
+	File=${BinDir}/${FilePrefix}-${OS}-${ARCH}
+        GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} go build -ldflags '-s -w' -o ${File}  > /dev/null 2>&1 && md5sum ${File} > ${File}.md5sum
         ((Total=Total-1))
     done
 done
+

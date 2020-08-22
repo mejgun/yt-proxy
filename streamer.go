@@ -201,6 +201,7 @@ func errorToHeaders(e error) ([]string, []string) {
 	splitted := strings.Split(e.Error(), "\n")
 	filtered := make([]string, 0)
 	for _, v := range splitted {
+		v := strings.TrimSpace(v)
 		if len(v) > 0 {
 			filtered = append(filtered, v)
 		}
