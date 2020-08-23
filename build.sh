@@ -2,6 +2,8 @@
 
 # https://github.com/golang/go/blob/master/src/go/build/syslist.go
 
+GoBin=go
+
 BinDir="bin"
 FilePrefix="yt-proxy"
 
@@ -13,13 +15,14 @@ ArchList=($ArchListStr)
 
 Total=$((${#OSList[@]}*${#ArchList[@]}))
 
+mkdir -p ${BinDir}
 for OS in ${OSListStr}
 do
     for ARCH in ${ArchListStr}
     do
         echo $Total ${OS}/${ARCH}
-	File=${BinDir}/${FilePrefix}-${OS}-${ARCH}
-        GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} go build -ldflags '-s -w' -o ${File}  > /dev/null 2>&1 && md5sum ${File} > ${File}.md5sum
+	File=${FilePrefix}-${OS}-${ARCH}
+        GOPATH=$(pwd) GOOS=${OS} GOARCH=${ARCH} $GoBin build -ldflags '-s -w' -o ${BinDir}/${File}  > /dev/null 2>&1 && cd ${BinDir} && md5sum ${File} > ${File}.md5sum && cd ..
         ((Total=Total-1))
     done
 done
