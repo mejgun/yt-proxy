@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const appVersion = "0.6.1"
+const appVersion = "0.7.0"
 
 const defaultVideoHeight = "720"
 const defaultVideoFormat = "mp4"
@@ -110,11 +110,9 @@ func playVideo(
 		fail("Proxying error", errors.New("No Content-Type header"))
 		return
 	}
-	if headersStrictCheck {
-		if h2[0] != "video/mp4" {
-			fail("Proxying error", errors.New("Content-Type is not video/mp4"))
-			return
-		}
+	if headersStrictCheck && h2[0] != "video/mp4" && h2[0] != "audio/mp4" {
+		fail("Proxying error", errors.New("Content-Type is not video/mp4 or audio/mp4"))
+		return
 	}
 	if ok {
 		w.Header().Set("Content-Type", h2[0])

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 0.7.0 - 2021-08-14
+### Added
+- m4a audio support (vf=m4a option)
+
 ## 0.6.0 - 2020-08-23
 ### Added
 - error-headers option

@@ -61,7 +61,15 @@ type doRequestF func(*http.Request) (*http.Response, error)
 func getYTDL() extractorF {
 	return func(vURL, vHeight, vFormat string, debug debugF) (string, int64, error) {
 		// videoFormat = "(mp4)[height<=720]"
-		videoFormat := "(" + vFormat + ")[height<=" + vHeight + "]"
+		var videoFormat string
+		switch vFormat {
+		case "m4a":
+			videoFormat = "(m4a)"
+		case "mp4":
+			fallthrough
+		default:
+			videoFormat = "(mp4)[height<=" + vHeight + "]"
+		}
 		cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vURL)
 		out, err := runCmd(cmd)
 		if err != nil {
@@ -158,7 +166,7 @@ func parseQuery(query string) (vURL, vh, vf string) {
 			}
 		}
 		if tvf, ok := tOpts["vf"]; ok {
-			if tvf[0] == "mp4" {
+			if tvf[0] == "mp4" || tvf[0] == "m4a" {
 				vf = tvf[0]
 			}
 		}
