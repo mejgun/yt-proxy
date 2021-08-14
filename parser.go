@@ -96,7 +96,7 @@ func runCmd(cmd *exec.Cmd) (string, error) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	toS := func(s bytes.Buffer) string {
-		return strings.TrimSpace(string(s.Bytes()))
+		return strings.TrimSpace(s.String())
 	}
 	outStr, errStr := toS(stdout), toS(stderr)
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const appVersion = "0.6"
+const appVersion = "0.6.1"
 
 const defaultVideoHeight = "720"
 const defaultVideoFormat = "mp4"
@@ -32,8 +32,7 @@ func main() {
 	} else {
 		extractor = getYTDL()
 	}
-	var requests chan requestChan
-	requests = make(chan requestChan)
+	var requests = make(chan requestChan)
 	var links linksCache
 	links.cache = make(map[string]lnkT)
 	debug := getDebugFunc(flags.enableDebug)
@@ -129,7 +128,10 @@ func playVideo(
 	if res.StatusCode == 206 {
 		w.WriteHeader(http.StatusPartialContent)
 	}
-	io.Copy(w, res.Body)
+	_, err = io.Copy(w, res.Body)
+	if err != nil {
+		log.Println("Proxy error", err)
+	}
 	log.Printf("%s disconnected\n", req.RemoteAddr)
 }
 
@@ -162,7 +164,10 @@ func getSendErrorVideoFunc(errorHeaders bool, errorVideo corruptedT) sendErrorVi
 				w.Header().Set(hdrs[i], errs[i])
 			}
 		}
-		w.Write(errorVideo.file)
+		_, err = w.Write(errorVideo.file)
+		if err != nil {
+			log.Println("Cannot send error video", err)
+		}
 	}
 }
 
