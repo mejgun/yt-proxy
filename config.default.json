@@ -4,7 +4,7 @@
     "ignore-missing-headers": false,
     "ignore-ssl-errors": false,
     "port": 8080,
-    "error-video": "",
+    "error-video": "corrupted.mp4",
     "extractor": {
         "path": "yt-dlp",
         "mp4": [

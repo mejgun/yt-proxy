@@ -27,6 +27,11 @@ func main() {
 		fmt.Println(appVersion)
 		os.Exit(0)
 	}
+	conf, err := readConfig(flags.config)
+	if err != nil {
+		log.Println("Error opening config file. ", err)
+		return
+	}
 	var extractor extractorF
 	if len(flags.customdl) > 0 {
 		extractor = getCustomDL(flags.customdl)

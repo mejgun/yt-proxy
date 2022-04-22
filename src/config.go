@@ -1,7 +1,12 @@
 package main
 
+import (
+	"encoding/json"
+	"os"
+)
+
 type configT struct {
-	EnableDebug          bool       `json:"debug"`
+	Log                  LogConfigT `json:"log"`
 	EnableErrorHeaders   bool       `json:"error-headers"`
 	IgnoreMissingHeaders bool       `json:"ignore-missing-headers"`
 	IgnoreSSLErrors      bool       `json:"ignore-ssl-errors"`
@@ -15,4 +20,14 @@ type extractorT struct {
 	MP4          []string `json:"mp4"`
 	M4A          []string `json:"m4a"`
 	GetUserAgent []string `json:"get-user-agent"`
+}
+
+func readConfig(path string) (configT, error) {
+	var c configT
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return c, err
+	}
+	err = json.Unmarshal(b, &c)
+	return c, err
 }
