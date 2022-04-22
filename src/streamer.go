@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,52 +12,12 @@ import (
 	"strings"
 )
 
-const appVersion = "0.7.0"
+const appVersion = "1.0.0"
 
 const defaultVideoHeight = "720"
 const defaultVideoFormat = "mp4"
 const defaultExpireTime = 3 * 60 * 60
 const defaultErrorHeader = "Error-Header-"
-
-func main() {
-	flags := parseCLIFlags()
-	if flags.version {
-		fmt.Println(appVersion)
-		os.Exit(0)
-	}
-	var extractor extractorF
-	if len(flags.customdl) > 0 {
-		extractor = getCustomDL(flags.customdl)
-	} else {
-		extractor = getYTDL()
-	}
-	var requests = make(chan requestChan)
-	var links linksCache
-	links.cache = make(map[string]lnkT)
-	debug := getDebugFunc(flags.enableDebug)
-	errorVideo := readErrorVideo(flags.errorVideoPath)
-	sendErrorVideo := getSendErrorVideoFunc(flags.enableErrorHeaders, errorVideo)
-	httpRequest := getDoRequestFunc(flags.ignoreSSLErrors)
-	go parseLinks(requests, debug, &links, extractor)
-	port := fmt.Sprintf("%d", flags.portInt)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
-		http.NotFound(w, r)
-	})
-	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
-		playVideo(w, r, requests, debug, sendErrorVideo, !flags.ignoreMissingHeaders, httpRequest)
-	})
-	s := &http.Server{
-		Addr: ":" + port,
-	}
-	s.SetKeepAlivesEnabled(true)
-	fmt.Printf("starting at *:%s\n", port)
-	err := s.ListenAndServe()
-	if err != nil {
-		log.Fatal("HTTP server start failed: ", err)
-	}
-}
 
 func playVideo(
 	w http.ResponseWriter,
@@ -217,18 +176,4 @@ func errorToHeaders(e error) ([]string, []string) {
 
 	}
 	return headers, filtered
-}
-
-func parseCLIFlags() flagsT {
-	var f flagsT
-	flag.BoolVar(&f.version, "version", false, "prints current yt-proxy version")
-	flag.BoolVar(&f.enableDebug, "debug", false, "turn on debug")
-	flag.BoolVar(&f.enableErrorHeaders, "error-headers", false, "show errors in headers (insecure)")
-	flag.BoolVar(&f.ignoreMissingHeaders, "ignore-missing-headers", false, "do not strictly check video headers")
-	flag.BoolVar(&f.ignoreSSLErrors, "ignore-ssl-errors", false, "do not check video server certificate (insecure)")
-	flag.UintVar(&f.portInt, "port", 8080, "listen port")
-	flag.StringVar(&f.errorVideoPath, "error-video", "corrupted.mp4", "file that will be shown on errors")
-	flag.StringVar(&f.customdl, "custom-extractor", "", "use custom url extractor, will be called like this: program_name url video_height video_format")
-	flag.Parse()
-	return f
 }

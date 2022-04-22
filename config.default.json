@@ -1,0 +1,9 @@
+{
+    "debug": false,
+    "error-headers": false,
+    "ignore-missing-headers": false,
+    "ignore-ssl-errors": false,
+    "port": 0,
+    "error-video": "",
+    "extractor": {}
+}
