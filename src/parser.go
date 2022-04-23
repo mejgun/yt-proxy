@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -22,11 +21,6 @@ type requestChan struct {
 type lnkT struct {
 	url    string
 	expire int64
-}
-
-type linksCache struct {
-	sync.RWMutex
-	cache map[string]lnkT
 }
 
 type debugF func(string, interface{})
