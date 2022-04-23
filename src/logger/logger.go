@@ -15,7 +15,7 @@ type LoggerT struct {
 	LogInfo    logFuncT
 }
 
-type LogConfigT struct {
+type ConfigT struct {
 	Level    LogLevelT
 	Output   LogOutputT
 	FileName string
@@ -39,21 +39,16 @@ const (
 	Both
 )
 
-func NewLogger(conf LogConfigT) (LoggerT, error) {
-	if conf.Level == Nothing {
-		return nothingLogT, nil
+func NewLogger(conf ConfigT) (LoggerT, error) {
+	var logger = LoggerT{
+		LogError:   func(s string, i []interface{}) {},
+		LogWarning: func(s string, i []interface{}) {},
+		LogDebug:   func(s string, i []interface{}) {},
+		LogInfo:    func(s string, i []interface{}) {},
 	}
-	return newRealLogger(conf)
-}
-
-var nothingLogT = LoggerT{
-	LogError:   func(s string, i []interface{}) {},
-	LogWarning: func(s string, i []interface{}) {},
-	LogDebug:   func(s string, i []interface{}) {},
-	LogInfo:    func(s string, i []interface{}) {},
-}
-
-func newRealLogger(conf LogConfigT) (LoggerT, error) {
+	if conf.Level == Nothing {
+		return logger, nil
+	}
 	var (
 		l   *log.Logger = log.Default()
 		f   *os.File
@@ -65,7 +60,7 @@ func newRealLogger(conf LogConfigT) (LoggerT, error) {
 	case File:
 		f, err = os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			return nothingLogT, err
+			return logger, err
 		}
 		// will never close this file :|
 		// should trap exit
@@ -75,29 +70,18 @@ func newRealLogger(conf LogConfigT) (LoggerT, error) {
 		l.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 	l.SetOutput(f)
-	var (
-		errF logFuncT = func(string, []interface{}) {}
-		dbgF logFuncT = func(string, []interface{}) {}
-		wrnF logFuncT = func(string, []interface{}) {}
-		infF logFuncT = func(string, []interface{}) {}
-	)
 	switch conf.Level {
 	case Debug:
-		dbgF = func(s string, i []interface{}) { l.Printf("[ DEBUG ] %s: %+v", s, i) }
+		logger.LogDebug = func(s string, i []interface{}) { l.Printf("[ DEBUG ] %s: %+v", s, i) }
 		fallthrough
 	case Info:
-		infF = func(s string, i []interface{}) { l.Printf("[ INFO ] %s: %+v", s, i) }
+		logger.LogInfo = func(s string, i []interface{}) { l.Printf("[ INFO ] %s: %+v", s, i) }
 		fallthrough
 	case Warning:
-		wrnF = func(s string, i []interface{}) { l.Printf("[ WARNING ] %s: %+v", s, i) }
+		logger.LogWarning = func(s string, i []interface{}) { l.Printf("[ WARNING ] %s: %+v", s, i) }
 		fallthrough
 	case Error:
-		errF = func(s string, i []interface{}) { l.Printf("[ ERROR ] %s: %+v", s, i) }
+		logger.LogError = func(s string, i []interface{}) { l.Printf("[ ERROR ] %s: %+v", s, i) }
 	}
-	return LoggerT{
-		LogError:   errF,
-		LogWarning: wrnF,
-		LogDebug:   dbgF,
-		LogInfo:    infF,
-	}, nil
+	return logger, nil
 }
