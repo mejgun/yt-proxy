@@ -12,8 +12,6 @@ import (
 	"strings"
 )
 
-const appVersion = "1.0.0"
-
 const defaultVideoHeight = "720"
 const defaultVideoFormat = "mp4"
 const defaultExpireTime = 3 * 60 * 60
@@ -92,24 +90,24 @@ func playVideo(
 	log.Printf("%s disconnected\n", req.RemoteAddr)
 }
 
-func parseLinks(requests <-chan requestChan, debug debugF, links *linksCache, extractor extractorF) {
-	for {
-		r := <-requests
-		url := r.url
-		rURL, rErr := getLink(url, debug, links, extractor)
-		debug("Extractor returned URL", rURL)
-		debug("Extractor returned error", rErr)
-		r.answerChan <- response{url: rURL, err: rErr}
-	}
-}
+// func parseLinks(requests <-chan requestChan, debug debugF, links *linksCache, extractor extractorF) {
+// 	for {
+// 		r := <-requests
+// 		url := r.url
+// 		rURL, rErr := getLink(url, debug, links, extractor)
+// 		debug("Extractor returned URL", rURL)
+// 		debug("Extractor returned error", rErr)
+// 		r.answerChan <- response{url: rURL, err: rErr}
+// 	}
+// }
 
-func getDebugFunc(enabled bool) debugF {
-	return func(d string, s interface{}) {
-		if enabled {
-			fmt.Printf("[DEBUG] %s: %+v\n", d, s)
-		}
-	}
-}
+// func getDebugFunc(enabled bool) debugF {
+// 	return func(d string, s interface{}) {
+// 		if enabled {
+// 			fmt.Printf("[DEBUG] %s: %+v\n", d, s)
+// 		}
+// 	}
+// }
 
 func getSendErrorVideoFunc(errorHeaders bool, errorVideo corruptedT) sendErrorVideoF {
 	return func(w http.ResponseWriter, err error) {

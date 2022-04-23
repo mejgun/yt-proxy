@@ -7,6 +7,7 @@ replace (
 	ytproxy-extractor => ./extractor
 	ytproxy-linkscache => ./cache
 	ytproxy-logger => ./logger
+	ytproxy-streamer => ./streamer
 )
 
 require (

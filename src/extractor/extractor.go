@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 )
 
@@ -31,6 +32,7 @@ type ExtractorT interface {
 }
 
 type defaultExtractor struct {
+	sync.Mutex
 	path         string
 	mp4          *template.Template
 	m4a          *template.Template
@@ -62,7 +64,7 @@ func New(c ConfigT) (ExtractorT, error) {
 }
 
 func (t *defaultExtractor) GetUserAgent() (string, error) {
-	return runCmd(t.path, t.getUserAgent)
+	return t.runCmd(t.getUserAgent)
 }
 
 func (t *defaultExtractor) Extract(req RequestT) (ResultT, error) {
@@ -81,7 +83,7 @@ func (t *defaultExtractor) Extract(req RequestT) (ResultT, error) {
 	if err != nil {
 		return ResultT{}, err
 	}
-	out, err := runCmd(t.path, buf.String())
+	out, err := t.runCmd(buf.String())
 	if err != nil {
 		return ResultT{}, err
 	}
@@ -99,16 +101,10 @@ func (t *defaultExtractor) Extract(req RequestT) (ResultT, error) {
 	return ResultT{URL: out, Expire: expire}, err
 }
 
-func split(s string) []string {
-	return strings.Split(s, separator)
-}
-
-func bytesToString(s bytes.Buffer) string {
-	return strings.TrimSpace(s.String())
-}
-
-func runCmd(command string, args string) (string, error) {
-	cmd := exec.Command(command, split(args)...)
+func (t *defaultExtractor) runCmd(args string) (string, error) {
+	t.Lock()
+	defer t.Unlock()
+	cmd := exec.Command(t.path, split(args)...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -119,4 +115,12 @@ func runCmd(command string, args string) (string, error) {
 		return "", errors.New(combinedErrStr)
 	}
 	return outStr, nil
+}
+
+func split(s string) []string {
+	return strings.Split(s, separator)
+}
+
+func bytesToString(s bytes.Buffer) string {
+	return strings.TrimSpace(s.String())
 }

@@ -12,6 +12,8 @@ import (
 	logger "ytproxy-logger"
 )
 
+const appVersion = "1.0.0"
+
 type flagsT struct {
 	version bool
 	config  string

@@ -13,17 +13,17 @@ type response struct {
 	err error
 }
 
-type requestChan struct {
-	url        string
-	answerChan chan response
-}
+// type requestChan struct {
+// 	url        string
+// 	answerChan chan response
+// }
 
 type lnkT struct {
 	url    string
 	expire int64
 }
 
-type debugF func(string, interface{})
+// type debugF func(string, interface{})
 
 type corruptedT struct {
 	file []byte
