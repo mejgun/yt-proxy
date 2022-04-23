@@ -1,4 +1,4 @@
-package main
+package ytproxy
 
 import (
 	"flag"
@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	config "ytproxy/config"
 )
 
 type flagsT struct {
@@ -27,7 +29,7 @@ func main() {
 		fmt.Println(appVersion)
 		os.Exit(0)
 	}
-	conf, err := readConfig(flags.config)
+	conf, err := config.Read(flags.config)
 	if err != nil {
 		log.Println("Error opening config file. ", err)
 		return

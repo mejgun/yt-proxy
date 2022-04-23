@@ -1,3 +1,3 @@
-module yt-proxy
+module ytproxy
 
 go 1.17
