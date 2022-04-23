@@ -3,11 +3,13 @@ package ytproxy
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	config "ytproxy-config"
+	extractor "ytproxy-extractor"
+	linkscache "ytproxy-linkscache"
+	logger "ytproxy-logger"
 )
 
 type flagsT struct {
@@ -31,20 +33,25 @@ func main() {
 	}
 	conf, err := config.Read(flags.config)
 	if err != nil {
-		log.Println("Error opening config file. ", err)
-		return
+		os.Stderr.WriteString("Config file opening error. ")
+		os.Stderr.WriteString(err.Error())
+		os.Exit(1)
 	}
-	var extractor extractorF
-	if len(flags.customdl) > 0 {
-		extractor = getCustomDL(flags.customdl)
-	} else {
-		extractor = getYTDL()
+	log, err := logger.New(conf.Log)
+	if err != nil {
+		os.Stderr.WriteString("Logger create error. ")
+		os.Stderr.WriteString(err.Error())
+		os.Exit(2)
 	}
+	extr, err := extractor.New(conf.Extractor)
+	if err != nil {
+		log.LogError("Extractor make", err)
+		os.Exit(3)
+	}
+	cache := linkscache.NewMapCache()
+
 	var requests = make(chan requestChan)
-	var links linksCache
-	links.cache = make(map[string]lnkT)
-	debug := getDebugFunc(flags.enableDebug)
-	errorVideo := readErrorVideo(flags.errorVideoPath)
+	errorVideo := readErrorVideo(conf.ErrorVideoPath)
 	sendErrorVideo := getSendErrorVideoFunc(flags.enableErrorHeaders, errorVideo)
 	httpRequest := getDoRequestFunc(flags.ignoreSSLErrors)
 	go parseLinks(requests, debug, &links, extractor)
