@@ -6,8 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	config "ytproxy/config"
+	config "ytproxy-config"
 )
 
 type flagsT struct {

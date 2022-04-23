@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	logger "ytproxy/logger"
+	logger "ytproxy-logger"
 )
 
 type configT struct {
