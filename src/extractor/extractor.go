@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/url"
 	"os/exec"
 	"strconv"
 	"strings"
+	"text/template"
 )
 
 const separator = ",,"
@@ -45,20 +45,20 @@ type RequestT struct {
 
 func New(c ConfigT) (ExtractorT, error) {
 	var (
-		e   *defaultExtractor
+		e   defaultExtractor
 		err error
 	)
 	e.m4a, err = template.New("").Parse(c.M4A)
 	if err != nil {
-		return e, err
+		return &e, err
 	}
 	e.mp4, err = template.New("").Parse(c.MP4)
 	if err != nil {
-		return e, err
+		return &e, err
 	}
 	e.getUserAgent = c.GetUserAgent
 	e.path = c.Path
-	return e, nil
+	return &e, nil
 }
 
 func (t *defaultExtractor) GetUserAgent() (string, error) {
