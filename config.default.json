@@ -7,20 +7,8 @@
     "error-video": "corrupted.mp4",
     "extractor": {
         "path": "yt-dlp",
-        "mp4": [
-            "-f",
-            "(mp4)[height<={{.HEIGHT}}]",
-            "-g",
-            "{{.URL}}"
-        ],
-        "m4a": [
-            "-f",
-            "(m4a)",
-            "-g",
-            "{{.URL}}"
-        ],
-        "get-user-agent": [
-            "--dump-user-agent"
-        ]
+        "mp4": "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
+        "m4a": "-f,,(m4a),,-g,,{{.URL}}",
+        "get-user-agent": "--dump-user-agent"
     }
 }

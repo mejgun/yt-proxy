@@ -1,14 +1,9 @@
 package ytproxy
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os/exec"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,67 +36,9 @@ type corruptedT struct {
 	size int64
 }
 
-type extractorF func(string, string, string, debugF) (string, int64, error)
-
 type sendErrorVideoF func(http.ResponseWriter, error)
 
 type doRequestF func(*http.Request) (*http.Response, error)
-
-func getYTDL() extractorF {
-	return func(vURL, vHeight, vFormat string, debug debugF) (string, int64, error) {
-		// videoFormat = "(mp4)[height<=720]"
-		var videoFormat string
-		switch vFormat {
-		case "m4a":
-			videoFormat = "(m4a)"
-		case "mp4":
-			fallthrough
-		default:
-			videoFormat = "(mp4)[height<=" + vHeight + "]"
-		}
-		cmd := exec.Command("youtube-dl", "-f", videoFormat, "-g", vURL)
-		out, err := runCmd(cmd)
-		if err != nil {
-			return "", 0, err
-		}
-		var expire int64
-		u, err := url.Parse(out)
-		if err == nil {
-			m, _ := url.ParseQuery(u.RawQuery)
-			if e, ok := m["expire"]; ok {
-				e1, err1 := strconv.ParseInt(e[0], 10, 64)
-				if err1 == nil {
-					expire = e1
-				}
-			}
-		}
-		return out, expire, err
-	}
-}
-
-func getCustomDL(path string) extractorF {
-	return func(vURL, vHeight, vFormat string, debug debugF) (string, int64, error) {
-		cmd := exec.Command(path, vURL, vHeight, vFormat)
-		out, err := runCmd(cmd)
-		return out, 0, err
-	}
-}
-
-func runCmd(cmd *exec.Cmd) (string, error) {
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	toS := func(s bytes.Buffer) string {
-		return strings.TrimSpace(s.String())
-	}
-	outStr, errStr := toS(stdout), toS(stderr)
-	if err != nil {
-		combinedErrStr := fmt.Sprintf("%s\n%s\n%s", err.Error(), outStr, errStr)
-		return "", errors.New(combinedErrStr)
-	}
-	return outStr, nil
-}
 
 func getLink(query string, debug debugF, links *linksCache, extractor extractorF) (string, error) {
 	now := time.Now().Unix()
