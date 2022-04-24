@@ -16,6 +16,7 @@ Run with `--help`
   - 2 - logger create error
   - 3 - extractor create error
   - 4 - streamer create error
+  - 5 - web server error
 
 ### Config explained ###
 use config.default.json to start

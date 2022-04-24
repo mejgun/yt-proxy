@@ -1,4 +1,4 @@
-package ytproxy
+package streamer
 
 import (
 	"errors"
