@@ -6,16 +6,14 @@ import (
 
 	extractor "ytproxy-extractor"
 	logger "ytproxy-logger"
+	streamer "ytproxy-streamer"
 )
 
 type configT struct {
-	Log                  logger.ConfigT    `json:"log"`
-	EnableErrorHeaders   bool              `json:"error-headers"`
-	IgnoreMissingHeaders bool              `json:"ignore-missing-headers"`
-	IgnoreSSLErrors      bool              `json:"ignore-ssl-errors"`
-	PortInt              uint16            `json:"port"`
-	ErrorVideoPath       string            `json:"error-video"`
-	Extractor            extractor.ConfigT `json:"extractor"`
+	PortInt   uint16            `json:"port"`
+	Streamer  streamer.ConfigT  `json:"streamer"`
+	Extractor extractor.ConfigT `json:"extractor"`
+	Log       logger.ConfigT    `json:"log"`
 }
 
 func Read(path string) (configT, error) {

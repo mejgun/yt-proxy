@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-type logFuncT func(string, interface{})
+type logFuncT func(string, ...interface{})
 
 type T struct {
 	LogError   logFuncT
@@ -41,10 +41,10 @@ const (
 
 func New(conf ConfigT) (*T, error) {
 	var logger = T{
-		LogError:   func(s string, i interface{}) {},
-		LogWarning: func(s string, i interface{}) {},
-		LogDebug:   func(s string, i interface{}) {},
-		LogInfo:    func(s string, i interface{}) {},
+		LogError:   func(s string, i ...interface{}) {},
+		LogWarning: func(s string, i ...interface{}) {},
+		LogDebug:   func(s string, i ...interface{}) {},
+		LogInfo:    func(s string, i ...interface{}) {},
 	}
 	if conf.Level == Nothing {
 		return &logger, nil
@@ -72,16 +72,16 @@ func New(conf ConfigT) (*T, error) {
 	l.SetOutput(f)
 	switch conf.Level {
 	case Debug:
-		logger.LogDebug = func(s string, i interface{}) { l.Printf("[ DEBUG ] %s: %+v", s, i) }
+		logger.LogDebug = func(s string, i ...interface{}) { l.Printf("[ DEBUG ] %s: %+v", s, i) }
 		fallthrough
 	case Info:
-		logger.LogInfo = func(s string, i interface{}) { l.Printf("[ INFO ] %s: %+v", s, i) }
+		logger.LogInfo = func(s string, i ...interface{}) { l.Printf("[ INFO ] %s: %+v", s, i) }
 		fallthrough
 	case Warning:
-		logger.LogWarning = func(s string, i interface{}) { l.Printf("[ WARNING ] %s: %+v", s, i) }
+		logger.LogWarning = func(s string, i ...interface{}) { l.Printf("[ WARNING ] %s: %+v", s, i) }
 		fallthrough
 	case Error:
-		logger.LogError = func(s string, i interface{}) { l.Printf("[ ERROR ] %s: %+v", s, i) }
+		logger.LogError = func(s string, i ...interface{}) { l.Printf("[ ERROR ] %s: %+v", s, i) }
 	}
 	return &logger, nil
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	streamer "ytproxy-streamer"
 
 	config "ytproxy-config"
 	extractor "ytproxy-extractor"
@@ -22,6 +23,14 @@ type flagsT struct {
 	config  string
 }
 
+const (
+	NoError = iota
+	ConfigError
+	LoggerError
+	ExtractorError
+	StreamerError
+)
+
 func parseCLIFlags() flagsT {
 	var f flagsT
 	flag.BoolVar(&f.version, "version", false, "prints current yt-proxy version")
@@ -34,37 +43,43 @@ func main() {
 	flags := parseCLIFlags()
 	if flags.version {
 		fmt.Println(appVersion)
-		os.Exit(0)
+		os.Exit(NoError)
 	}
 	conf, err := config.Read(flags.config)
 	if err != nil {
 		os.Stderr.WriteString("Config file opening error. ")
 		os.Stderr.WriteString(err.Error())
-		os.Exit(1)
+		os.Exit(ConfigError)
 	}
 	log, err := logger.New(conf.Log)
 	if err != nil {
 		os.Stderr.WriteString("Logger create error. ")
 		os.Stderr.WriteString(err.Error())
-		os.Exit(2)
+		os.Exit(LoggerError)
 	}
 	extr, err := extractor.New(conf.Extractor)
 	if err != nil {
 		log.LogError("Extractor make", err)
-		os.Exit(3)
+		os.Exit(ExtractorError)
 	}
 	cache := linkscache.NewMapCache()
+	s, err := streamer.New(conf.Streamer)
+	if err != nil {
+		log.LogError("Streamer make", err)
+		os.Exit(StreamerError)
+	}
 
 	errorVideo := readErrorVideo(conf.ErrorVideoPath)
 	sendErrorVideo := getSendErrorVideoFunc(flags.enableErrorHeaders, errorVideo)
 	httpRequest := getDoRequestFunc(flags.ignoreSSLErrors)
-	port := fmt.Sprintf("%d", flags.portInt)
+	port := fmt.Sprintf("%d", conf.PortInt)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
+		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
+		log.LogDebug("Bad request", r)
 		http.NotFound(w, r)
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RemoteAddr, r.RequestURI)
+		log.LogInfo("Play request", r.RemoteAddr, r.RequestURI)
 		playVideo(w, r, requests, debug, sendErrorVideo, !flags.ignoreMissingHeaders, httpRequest)
 	})
 	s := &http.Server{

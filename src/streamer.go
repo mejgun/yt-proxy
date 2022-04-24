@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -137,24 +135,6 @@ func getDoRequestFunc(ignoreSSLErrors bool) doRequestF {
 		client := &http.Client{Transport: tr}
 		return client.Do(request)
 	}
-}
-
-func readErrorVideo(path string) corruptedT {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fileinfo, err := file.Stat()
-	if err != nil {
-		log.Fatal(err)
-	}
-	filesize := fileinfo.Size()
-	file.Close()
-	corrupted, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return corruptedT{file: corrupted, size: filesize}
 }
 
 func errorToHeaders(e error) ([]string, []string) {
