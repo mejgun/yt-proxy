@@ -6,7 +6,7 @@ import (
 	extractor "ytproxy-extractor"
 )
 
-type CacheT interface {
+type T interface {
 	Add(extractor.RequestT, extractor.ResultT)
 	Get(extractor.RequestT) (extractor.ResultT, bool)
 	CleanExpired(int64) []extractor.ResultT
@@ -17,7 +17,7 @@ type defaultCache struct {
 	cache map[string]extractor.ResultT
 }
 
-func NewMapCache() CacheT {
+func NewMapCache() T {
 	return &defaultCache{}
 }
 

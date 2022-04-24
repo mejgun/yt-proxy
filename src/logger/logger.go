@@ -39,7 +39,7 @@ const (
 	Both
 )
 
-func New(conf ConfigT) (T, error) {
+func New(conf ConfigT) (*T, error) {
 	var logger = T{
 		LogError:   func(s string, i interface{}) {},
 		LogWarning: func(s string, i interface{}) {},
@@ -47,7 +47,7 @@ func New(conf ConfigT) (T, error) {
 		LogInfo:    func(s string, i interface{}) {},
 	}
 	if conf.Level == Nothing {
-		return logger, nil
+		return &logger, nil
 	}
 	var (
 		l   *log.Logger = log.Default()
@@ -60,7 +60,7 @@ func New(conf ConfigT) (T, error) {
 	case File:
 		f, err = os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			return logger, err
+			return &logger, err
 		}
 		// will never close this file :|
 		// should trap exit
@@ -83,5 +83,5 @@ func New(conf ConfigT) (T, error) {
 	case Error:
 		logger.LogError = func(s string, i interface{}) { l.Printf("[ ERROR ] %s: %+v", s, i) }
 	}
-	return logger, nil
+	return &logger, nil
 }

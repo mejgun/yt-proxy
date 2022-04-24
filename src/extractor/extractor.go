@@ -26,7 +26,7 @@ type ResultT struct {
 	Expire int64
 }
 
-type ExtractorT interface {
+type T interface {
 	Extract(RequestT) (ResultT, error)
 	GetUserAgent() (string, error)
 }
@@ -45,7 +45,7 @@ type RequestT struct {
 	FORMAT string
 }
 
-func New(c ConfigT) (ExtractorT, error) {
+func New(c ConfigT) (T, error) {
 	var (
 		e   defaultExtractor
 		err error

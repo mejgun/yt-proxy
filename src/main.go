@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
+	"time"
 
 	config "ytproxy-config"
 	extractor "ytproxy-extractor"
@@ -52,11 +55,9 @@ func main() {
 	}
 	cache := linkscache.NewMapCache()
 
-	var requests = make(chan requestChan)
 	errorVideo := readErrorVideo(conf.ErrorVideoPath)
 	sendErrorVideo := getSendErrorVideoFunc(flags.enableErrorHeaders, errorVideo)
 	httpRequest := getDoRequestFunc(flags.ignoreSSLErrors)
-	go parseLinks(requests, debug, &links, extractor)
 	port := fmt.Sprintf("%d", flags.portInt)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.RemoteAddr, r.RequestURI)
@@ -75,4 +76,53 @@ func main() {
 	if err != nil {
 		log.Fatal("HTTP server start failed: ", err)
 	}
+}
+
+func getLink(query string, log *logger.T, cache linkscache.T, extractor extractor.T) (extractor.ResultT, error) {
+	now := time.Now().Unix()
+	req := parseQuery(query)
+	for _, v := range cache.CleanExpired(now) {
+		log.LogDebug("Clean expired cache", v)
+	}
+	log.LogInfo("Request", req)
+	if lnk, ok := cache.Get(req); ok {
+		return lnk, nil
+	}
+	res, err := extractor.Extract(req)
+	log.LogDebug("Not cached. Extractor returned", res)
+	if err != nil {
+		return res, err
+	}
+	if res.Expire == 0 {
+		res.Expire = now + defaultExpireTime
+	}
+	cache.Add(req, res)
+	log.LogDebug("Cache add", res)
+	return res, nil
+}
+
+func parseQuery(query string) extractor.RequestT {
+	var req extractor.RequestT
+	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
+	splitted := strings.Split(query, "?/?")
+	req.URL = splitted[0]
+	req.HEIGHT = defaultVideoHeight
+	req.FORMAT = defaultVideoFormat
+	if len(splitted) != 2 {
+		return req
+	}
+	tOpts, tErr := url.ParseQuery(splitted[1])
+	if tErr == nil {
+		if tvh, ok := tOpts["vh"]; ok {
+			if tvh[0] == "360" || tvh[0] == "480" || tvh[0] == "720" {
+				req.HEIGHT = tvh[0]
+			}
+		}
+		if tvf, ok := tOpts["vf"]; ok {
+			if tvf[0] == "mp4" || tvf[0] == "m4a" {
+				req.FORMAT = tvf[0]
+			}
+		}
+	}
+	return req
 }
