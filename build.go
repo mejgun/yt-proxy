@@ -39,6 +39,8 @@ func main() {
 	}
 }
 
+// https://github.com/golang/go/blob/master/src/go/build/syslist.go
+
 var knownOS = map[string]bool{
 	"aix":       true,
 	"android":   true,

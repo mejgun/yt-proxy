@@ -1,14 +1,22 @@
 {
     "debug": false,
-    "error-headers": false,
-    "ignore-missing-headers": false,
-    "ignore-ssl-errors": false,
-    "port": 8080,
-    "error-video": "corrupted.mp4",
+    "streamer": {
+        "error-headers": false,
+        "ignore-missing-headers": false,
+        "ignore-ssl-errors": false,
+        "port": 8080,
+        "error-video": "corrupted.mp4",
+        "error-audio": "corrupted.mp4"
+    },
     "extractor": {
         "path": "yt-dlp",
         "mp4": "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
         "m4a": "-f,,(m4a),,-g,,{{.URL}}",
         "get-user-agent": "--dump-user-agent"
+    },
+    "log": {
+        "level": "info",
+        "output": "stdout",
+        "filename": "log.txt"
     }
 }

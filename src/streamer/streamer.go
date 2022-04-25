@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
+	logger "ytproxy-logger"
 
 	extractor "ytproxy-extractor"
-	logger "ytproxy-logger"
 )
 
 const defaultErrorHeader = "Error-Header-"
@@ -25,8 +24,8 @@ type ConfigT struct {
 }
 
 type T interface {
-	Play(http.ResponseWriter, *http.Request, extractor.RequestT, extractor.ResultT)
-	PlayError(http.ResponseWriter, extractor.RequestT)
+	Play(http.ResponseWriter, *http.Request, extractor.RequestT, extractor.ResultT) error
+	PlayError(http.ResponseWriter, extractor.RequestT, error) error
 }
 
 type streamer struct {
@@ -67,6 +66,7 @@ func New(conf ConfigT, log *logger.T) (T, error) {
 	s.httpRequest = makeDoRequestFunc(conf)
 	s.sendErrorFile = makeSendErrorVideoFunc(conf)
 	s.setHeaders = makeSetHeaders(conf)
+	s.log = log
 	return &s, nil
 }
 
@@ -75,22 +75,15 @@ func (t *streamer) Play(
 	req *http.Request,
 	reqst extractor.RequestT,
 	rest extractor.ResultT,
-) {
-	t.log.LogDebug("Streamer request", rest)
-	fail := func(str string, err error) {
-		t.log.LogError(str, err)
-		var file *fileT
-		if reqst.FORMAT == "mp4" {
-			file = &t.errorVideoFile
-		} else {
-			file = &t.errorAudioFile
-		}
-		t.sendErrorFile(w, err, *file)
-	}
+) error {
+	// t.log.LogDebug("Streamer request", rest)
+	// fail := func(str string, err error) {
+	// 	t.log.LogError(str, err)
+	// 	t.PlayError(w, reqst, err)
+	// }
 	request, err := http.NewRequest("GET", rest.URL, nil)
 	if err != nil {
-		fail("Proxying error", err)
-		return
+		return err
 	}
 	if r1, ok := req.Header["Range"]; ok {
 		request.Header.Set("Range", r1[0])
@@ -98,25 +91,32 @@ func (t *streamer) Play(
 	request.Header.Set("User-Agent", req.UserAgent())
 	res, err := t.httpRequest(request)
 	if err != nil {
-		fail("Proxying error", err)
-		return
+		// fail("Proxying error", err)
+		return err
 	}
 	defer res.Body.Close()
 	t.log.LogDebug("Response", res)
 	err = t.setHeaders(w, res)
 	if err != nil {
-		fail("Headers error", err)
-	}
-	if res.StatusCode == 206 {
-		w.WriteHeader(http.StatusPartialContent)
+		// fail("Headers error", err)
+		return err
 	}
 	_, err = io.Copy(w, res.Body)
 	if err != nil {
-		log.Println("Proxy error", err)
+		return err
 	}
+	return nil
 }
 
-func (t *streamer) PlayError(w http.ResponseWriter, req extractor.RequestT) {}
+func (t *streamer) PlayError(w http.ResponseWriter, req extractor.RequestT, err error) error {
+	var file *fileT
+	if req.FORMAT == "mp4" {
+		file = &t.errorVideoFile
+	} else {
+		file = &t.errorAudioFile
+	}
+	return t.sendErrorFile(w, err, *file)
+}
 
 func readFile(path string) (fileT, error) {
 	file, err := os.Open(path)
@@ -208,6 +208,9 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 		}
 		if h4, ok := res.Header["Content-Range"]; ok {
 			w.Header().Set("Content-Range", h4[0])
+		}
+		if res.StatusCode == 206 {
+			w.WriteHeader(http.StatusPartialContent)
 		}
 		return nil
 	}

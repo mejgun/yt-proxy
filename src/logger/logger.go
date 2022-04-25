@@ -16,9 +16,9 @@ type T struct {
 }
 
 type ConfigT struct {
-	Level    LevelT
-	Output   OutputT
-	FileName string
+	Level    LevelT  `json:"level"`
+	Output   OutputT `json:"output"`
+	FileName string  `json:"filename"`
 }
 
 type LevelT uint8

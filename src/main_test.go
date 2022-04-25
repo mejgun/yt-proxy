@@ -7,12 +7,36 @@ import (
 )
 
 var testPairs = map[string]extractor.RequestT{
-	"/play/youtu.be/jNQXAC9IVRw?/?vh=360&vf=mp4": extractor.RequestT{"youtu.be/jNQXAC9IVRw", "360", "mp4"},
-	"/play/youtu.be/jNQXAC9IVRw?/?vh=720?vf=avi": extractor.RequestT{"youtu.be/jNQXAC9IVRw", "720", defaultVideoFormat},
-	"/play/youtu.be/jNQXAC9IVRw":                 extractor.RequestT{"youtu.be/jNQXAC9IVRw", defaultVideoHeight, defaultVideoFormat},
-	"/play/youtu.be/jNQXAC9IVRw?/?":              extractor.RequestT{"youtu.be/jNQXAC9IVRw", defaultVideoHeight, defaultVideoFormat},
-	"/play/youtu.be/jNQXAC9IVRw?/?vf=avi":        extractor.RequestT{"youtu.be/jNQXAC9IVRw", defaultVideoHeight, defaultVideoFormat},
-	"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4":        extractor.RequestT{"youtu.be/jNQXAC9IVRw", defaultVideoHeight, "mp4"},
+	"/play/youtu.be/jNQXAC9IVRw?/?vh=360&vf=mp4": {
+		URL:    "youtu.be/jNQXAC9IVRw",
+		HEIGHT: "360",
+		FORMAT: "mp4",
+	},
+	"/play/youtu.be/jNQXAC9IVRw?/?vh=720?vf=avi": {
+		URL:    "youtu.be/jNQXAC9IVRw",
+		HEIGHT: "720",
+		FORMAT: defaultVideoFormat,
+	},
+	"/play/youtu.be/jNQXAC9IVRw": {
+		URL:    "youtu.be/jNQXAC9IVRw",
+		HEIGHT: defaultVideoHeight,
+		FORMAT: defaultVideoFormat,
+	},
+	"/play/youtu.be/jNQXAC9IVRw?/?": {
+		URL:    "youtu.be/jNQXAC9IVRw",
+		HEIGHT: defaultVideoHeight,
+		FORMAT: defaultVideoFormat,
+	},
+	"/play/youtu.be/jNQXAC9IVRw?/?vf=avi": {
+		URL:    "youtu.be/jNQXAC9IVRw",
+		HEIGHT: defaultVideoHeight,
+		FORMAT: defaultVideoFormat,
+	},
+	"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4": {
+		URL:    "youtu.be/jNQXAC9IVRw",
+		HEIGHT: defaultVideoHeight,
+		FORMAT: "mp4",
+	},
 }
 
 func TestParseQuery(t *testing.T) {

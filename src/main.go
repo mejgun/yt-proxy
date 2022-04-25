@@ -48,7 +48,7 @@ func parseCLIFlags() flagsT {
 
 func main() {
 	stdout := func(s string) { os.Stdout.WriteString(fmt.Sprintf("%s\n", s)) }
-	stderr := func(s string) { os.Stderr.WriteString(fmt.Sprintf("%s\n", s)) }
+	stderr := func(s string) { os.Stderr.WriteString(fmt.Sprintf("[ ERROR ] %s\n", s)) }
 	flags := parseCLIFlags()
 	if flags.version {
 		stdout(appVersion)
@@ -93,10 +93,17 @@ func main() {
 		req, res, err := getLink(r.RequestURI, log, cache, extr)
 		if err != nil {
 			log.LogError("URL extract error", err)
-			restreamer.PlayError(w, req)
+			restreamer.PlayError(w, req, err)
+			log.LogInfo("Disconnecting", r.RemoteAddr)
 			return
 		}
-		restreamer.Play(w, r, req, res)
+		err = restreamer.Play(w, r, req, res)
+		if err != nil {
+			log.LogError("Restream error", err)
+			restreamer.PlayError(w, req, err)
+			log.LogInfo("Disconnecting", r.RemoteAddr)
+			return
+		}
 		log.LogInfo("Player disconnected", r.RemoteAddr)
 		// playVideo(w, r, requests, debug, sendErrorVideo, !flags.ignoreMissingHeaders, httpRequest)
 	})
