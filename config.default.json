@@ -1,10 +1,9 @@
 {
-    "debug": false,
+    "port": 8080,
     "streamer": {
         "error-headers": false,
         "ignore-missing-headers": false,
         "ignore-ssl-errors": false,
-        "port": 8080,
         "error-video": "corrupted.mp4",
         "error-audio": "corrupted.mp4"
     },

@@ -94,14 +94,14 @@ func main() {
 		if err != nil {
 			log.LogError("URL extract error", err)
 			restreamer.PlayError(w, req, err)
-			log.LogInfo("Disconnecting", r.RemoteAddr)
+			log.LogInfo("URL extract failed. Disconnecting", r.RemoteAddr)
 			return
 		}
 		err = restreamer.Play(w, r, req, res)
 		if err != nil {
 			log.LogError("Restream error", err)
 			restreamer.PlayError(w, req, err)
-			log.LogInfo("Disconnecting", r.RemoteAddr)
+			log.LogInfo("URL Restream failed. Disconnecting", r.RemoteAddr)
 			return
 		}
 		log.LogInfo("Player disconnected", r.RemoteAddr)
@@ -111,7 +111,7 @@ func main() {
 		Addr: ":" + port,
 	}
 	s.SetKeepAlivesEnabled(true)
-	log.LogInfo("Starting web server at *:%s\n", port)
+	log.LogInfo("Starting web server", port)
 	err = s.ListenAndServe()
 	if err != nil {
 		log.LogError("HTTP server start failed: ", err)

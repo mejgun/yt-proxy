@@ -14,23 +14,23 @@ type T interface {
 
 type defaultCache struct {
 	sync.Mutex
-	cache map[string]extractor.ResultT
+	cache map[extractor.RequestT]extractor.ResultT
 }
 
 func NewMapCache() T {
-	return &defaultCache{}
+	return &defaultCache{cache: make(map[extractor.RequestT]extractor.ResultT)}
 }
 
 func (t *defaultCache) Add(req extractor.RequestT, res extractor.ResultT) {
 	t.Lock()
-	t.cache[req.URL] = res
+	t.cache[req] = res
 	t.Unlock()
 }
 
 func (t *defaultCache) Get(req extractor.RequestT) (extractor.ResultT, bool) {
 	t.Lock()
 	defer t.Unlock()
-	v, ok := t.cache[req.URL]
+	v, ok := t.cache[req]
 	return v, ok
 }
 
