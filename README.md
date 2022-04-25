@@ -22,7 +22,7 @@ Run with `--help`
 do not copypaste, comments are not allowed in this json.
 use config.default.json instead.
 
-```json
+```jsonc
 {
     // web server listen port
     "port": 8080,
