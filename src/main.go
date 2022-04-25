@@ -66,12 +66,14 @@ func main() {
 		stderr(err.Error())
 		os.Exit(LoggerError)
 	}
+	log.LogDebug("logger created")
 	extr, err := extractor.New(conf.Extractor)
 	if err != nil {
 		stderr("Extractor make error.")
 		stderr(err.Error())
 		os.Exit(ExtractorError)
 	}
+	log.LogDebug("extractor created")
 	cache := linkscache.NewMapCache()
 	restreamer, err := streamer.New(conf.Streamer, log)
 	if err != nil {
@@ -79,10 +81,8 @@ func main() {
 		stderr(err.Error())
 		os.Exit(StreamerError)
 	}
+	log.LogDebug("streamer  created")
 
-	// errorVideo := readErrorVideo(conf.ErrorVideoPath)
-	// sendErrorVideo := getSendErrorVideoFunc(flags.enableErrorHeaders, errorVideo)
-	// httpRequest := getDoRequestFunc(flags.ignoreSSLErrors)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
 		log.LogDebug("Bad request", r)
@@ -105,7 +105,6 @@ func main() {
 			return
 		}
 		log.LogInfo("Player disconnected", r.RemoteAddr)
-		// playVideo(w, r, requests, debug, sendErrorVideo, !flags.ignoreMissingHeaders, httpRequest)
 	})
 	port := fmt.Sprintf("%d", conf.PortInt)
 	s := &http.Server{

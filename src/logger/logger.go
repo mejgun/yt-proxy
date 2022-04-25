@@ -94,26 +94,26 @@ func New(conf ConfigT) (*T, error) {
 		return &logger, nil
 	}
 	var (
-		l   *log.Logger = log.Default()
-		f   *os.File
-		err error
+		l *log.Logger = log.Default()
 	)
 	switch conf.Output {
 	case Stdout:
-		break
+		l.SetOutput(os.Stdout)
 	case File:
-		f, err = os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			return &logger, err
 		}
 		// will never close this file :|
 		// should trap exit
 		l.SetOutput(f)
-		fallthrough
 	case Both:
+		f, err := os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			return &logger, err
+		}
 		l.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
-	l.SetOutput(f)
 	switch conf.Level {
 	case Debug:
 		logger.LogDebug = func(s string, i ...interface{}) { l.Printf("[ DEBUG ] %s: %+v", s, i) }
