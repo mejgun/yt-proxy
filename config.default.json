@@ -5,7 +5,7 @@
         "ignore-missing-headers": false,
         "ignore-ssl-errors": false,
         "error-video": "corrupted.mp4",
-        "error-audio": "corrupted.mp4"
+        "error-audio": "failed.m4a"
     },
     "extractor": {
         "path": "yt-dlp",

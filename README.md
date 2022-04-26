@@ -36,15 +36,16 @@ use config.default.json instead.
         "ignore-ssl-errors": false,
         // video file that will be shown on errors
         "error-video": "corrupted.mp4",
-        // audio file that will be shown on errors
-        "error-audio": "corrupted.mp4"
+        // audio file that will be played on errors
+        // dwnlded here youtu.be/_b8KPiT1PxI (suggest your options)
+        "error-audio": "failed.m4a"
     },
     // media extractor config
     "extractor": {
         // file path
         "path": "yt-dlp",
-        // arguments for extractor mp4 url
-        // ",," is args separator, not space
+        // arguments for extractor
+        // args separator шы ",,", not space
         // {{.HEIGHT}} will be replaced with requested height (360/480/720)
         // {{.URL}} will be replace with requested url
         // also you can use {{.FORMAT}} - requested format (now - only mp4 or m4a)
