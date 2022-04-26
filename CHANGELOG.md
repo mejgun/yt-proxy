@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 1.0.0 - 2021-04-26 - big refactoring & breaking changes
+### Changed
+- almost all flags/cmd arguments moved to config file
+- build scripts
+### Added
+- config file
+- logging options (destination/verbosity)
+- url extractor settings moved entirely to config file
+
 ## 0.7.0 - 2021-08-14
 ### Added
 - m4a audio support (vf=m4a option)
