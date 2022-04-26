@@ -4,7 +4,7 @@ This is part of another project: https://github.com/mesb1/xupnpd_youtube
 
 ### Build ###
 
-`go build`
+`cd src && go build`
 
 ### Options ###
 
@@ -12,6 +12,7 @@ Run with `--help`
 
 ### Exit codes ###
 
+  - 0 - OK
   - 1 - config read/parse error
   - 2 - logger create error
   - 3 - extractor create error
@@ -45,7 +46,7 @@ use config.default.json instead.
         // file path
         "path": "yt-dlp",
         // arguments for extractor
-        // args separator шы ",,", not space
+        // args separator is ",,", not space
         // {{.HEIGHT}} will be replaced with requested height (360/480/720)
         // {{.URL}} will be replace with requested url
         // also you can use {{.FORMAT}} - requested format (now - only mp4 or m4a)
