@@ -90,6 +90,7 @@ func main() {
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Play request", r.RemoteAddr, r.RequestURI)
+		log.LogDebug("User request", r)
 		req, res, err := getLink(r.RequestURI, log, cache, extr)
 		if err != nil {
 			log.LogError("URL extract error", err)

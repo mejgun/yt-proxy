@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 type logFuncT func(string, ...interface{})
@@ -114,18 +115,23 @@ func New(conf ConfigT) (*T, error) {
 		}
 		l.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
+	print := func(str string, s string, i []interface{}) {
+		l.Printf(
+			fmt.Sprintf("[ %s ] %s:", str, s) +
+				fmt.Sprintf(strings.Repeat(" %+v", len(i)), i...))
+	}
 	switch conf.Level {
 	case Debug:
-		logger.LogDebug = func(s string, i ...interface{}) { l.Printf("[ DEBUG ] %s: %+v", s, i) }
+		logger.LogDebug = func(s string, i ...interface{}) { print("DEBUG", s, i) }
 		fallthrough
 	case Info:
-		logger.LogInfo = func(s string, i ...interface{}) { l.Printf("[ INFO ] %s: %+v", s, i) }
+		logger.LogInfo = func(s string, i ...interface{}) { print("INFO", s, i) }
 		fallthrough
 	case Warning:
-		logger.LogWarning = func(s string, i ...interface{}) { l.Printf("[ WARNING ] %s: %+v", s, i) }
+		logger.LogWarning = func(s string, i ...interface{}) { print("WARNING", s, i) }
 		fallthrough
 	case Error:
-		logger.LogError = func(s string, i ...interface{}) { l.Printf("[ ERROR ] %s: %+v", s, i) }
+		logger.LogError = func(s string, i ...interface{}) { print("ERROR", s, i) }
 	}
 	return &logger, nil
 }
