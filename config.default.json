@@ -15,7 +15,7 @@
         "get-user-agent": "--dump-user-agent"
     },
     "log": {
-        "level": "debug",
+        "level": "info",
         "output": "stdout",
         "filename": "log.txt"
     }

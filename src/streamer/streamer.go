@@ -3,7 +3,6 @@ package streamer
 import (
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -219,17 +218,17 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 	return func(w http.ResponseWriter, res *http.Response) error {
 		h1, ok := res.Header["Content-Length"]
 		if !ok && headersStrictCheck {
-			return errors.New("no Content-Length header")
+			return fmt.Errorf("no Content-Length header")
 		}
 		if ok {
 			w.Header().Set("Content-Length", h1[0])
 		}
 		h2, ok := res.Header["Content-Type"]
 		if !ok && headersStrictCheck {
-			return errors.New("no Content-Type header")
+			return fmt.Errorf("no Content-Type header")
 		}
 		if headersStrictCheck && h2[0] != "video/mp4" && h2[0] != "audio/mp4" {
-			return errors.New("Content-Type is not video/mp4 or audio/mp4")
+			return fmt.Errorf("Content-Type is not video/mp4 or audio/mp4, but %s", h2[0])
 		}
 		if ok {
 			w.Header().Set("Content-Type", h2[0])
