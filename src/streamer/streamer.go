@@ -27,8 +27,8 @@ type ConfigT struct {
 type SetUserAgentT uint8
 
 const (
-	Request SetUserAgentT = iota
-	Extractor
+	Extractor SetUserAgentT = iota
+	Request
 )
 
 func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
