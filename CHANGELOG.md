@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 1.1.0 - 2022-04-29
+### Added
+- new config opt (streamer user-agent)
+- error msgs edited
+
 ## 1.0.0 - 2022-04-26 - big refactoring & breaking changes
 ### Changed
 - almost all flags/cmd arguments moved to config file
