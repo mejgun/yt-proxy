@@ -39,7 +39,11 @@ use config.default.json instead.
         "error-video": "corrupted.mp4",
         // audio file that will be played on errors
         // dwnlded here youtu.be/_b8KPiT1PxI (suggest your options)
-        "error-audio": "failed.m4a"
+        "error-audio": "failed.m4a",
+        // how to set streamer's user-agent
+        // request - set from user's request (old default)
+        // extractor - set from extractor on app start (default)
+        "set-user-agent": "extractor"
     },
     // media extractor config
     "extractor": {

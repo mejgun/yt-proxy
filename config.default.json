@@ -5,7 +5,8 @@
         "ignore-missing-headers": false,
         "ignore-ssl-errors": false,
         "error-video": "corrupted.mp4",
-        "error-audio": "failed.m4a"
+        "error-audio": "failed.m4a",
+        "set-user-agent": "extractor"
     },
     "extractor": {
         "path": "yt-dlp",
@@ -14,7 +15,7 @@
         "get-user-agent": "--dump-user-agent"
     },
     "log": {
-        "level": "info",
+        "level": "debug",
         "output": "stdout",
         "filename": "log.txt"
     }

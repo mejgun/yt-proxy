@@ -75,7 +75,7 @@ func main() {
 	}
 	log.LogDebug("extractor created")
 	cache := linkscache.NewMapCache()
-	restreamer, err := streamer.New(conf.Streamer, log)
+	restreamer, err := streamer.New(conf.Streamer, log, extr)
 	if err != nil {
 		stderr("Streamer make error.")
 		stderr(err.Error())

@@ -2,25 +2,51 @@ package streamer
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
-	logger "ytproxy-logger"
 
 	extractor "ytproxy-extractor"
+	logger "ytproxy-logger"
 )
 
 const defaultErrorHeader = "Error-Header-"
 
 type ConfigT struct {
-	EnableErrorHeaders   bool   `json:"error-headers"`
-	IgnoreMissingHeaders bool   `json:"ignore-missing-headers"`
-	IgnoreSSLErrors      bool   `json:"ignore-ssl-errors"`
-	ErrorVideoPath       string `json:"error-video"`
-	ErrorAudioPath       string `json:"error-audio"`
+	EnableErrorHeaders   bool          `json:"error-headers"`
+	IgnoreMissingHeaders bool          `json:"ignore-missing-headers"`
+	IgnoreSSLErrors      bool          `json:"ignore-ssl-errors"`
+	ErrorVideoPath       string        `json:"error-video"`
+	ErrorAudioPath       string        `json:"error-audio"`
+	SetUserAgent         SetUserAgentT `json:"set-user-agent"`
+}
+
+type SetUserAgentT uint8
+
+const (
+	Request SetUserAgentT = iota
+	Extractor
+)
+
+func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+	switch s {
+	case "request":
+		*u = Request
+	case "extractor":
+		*u = Extractor
+	default:
+		return fmt.Errorf("cannot unmarshal %s as user-agent", b)
+	}
+	return nil
 }
 
 type T interface {
@@ -29,12 +55,13 @@ type T interface {
 }
 
 type streamer struct {
-	errorVideoFile fileT
-	errorAudioFile fileT
-	httpRequest    doRequestF
-	sendErrorFile  sendErrorFileF
-	setHeaders     func(http.ResponseWriter, *http.Response) error
-	log            *logger.T
+	errorVideoFile       fileT
+	errorAudioFile       fileT
+	httpRequest          doRequestF
+	sendErrorFile        sendErrorFileF
+	setHeaders           func(http.ResponseWriter, *http.Response) error
+	setStreamerUserAgent func(*http.Request) string
+	log                  *logger.T
 }
 
 type (
@@ -48,7 +75,7 @@ type fileT struct {
 	contentLength int64
 }
 
-func New(conf ConfigT, log *logger.T) (T, error) {
+func New(conf ConfigT, log *logger.T, xt extractor.T) (T, error) {
 	var (
 		s   streamer
 		err error
@@ -66,6 +93,10 @@ func New(conf ConfigT, log *logger.T) (T, error) {
 	s.httpRequest = makeDoRequestFunc(conf)
 	s.sendErrorFile = makeSendErrorVideoFunc(conf)
 	s.setHeaders = makeSetHeaders(conf)
+	s.setStreamerUserAgent, err = makeSetStreamerUserAgent(conf, xt, log)
+	if err != nil {
+		return &s, err
+	}
 	s.log = log
 	return &s, nil
 }
@@ -88,7 +119,7 @@ func (t *streamer) Play(
 	if r1, ok := req.Header["Range"]; ok {
 		request.Header.Set("Range", r1[0])
 	}
-	request.Header.Set("User-Agent", req.UserAgent())
+	request.Header.Set("User-Agent", t.setStreamerUserAgent(req))
 	res, err := t.httpRequest(request)
 	if err != nil {
 		// fail("Proxying error", err)
@@ -213,5 +244,24 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 			w.WriteHeader(http.StatusPartialContent)
 		}
 		return nil
+	}
+}
+
+func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log *logger.T) (func(*http.Request) string, error) {
+	switch conf.SetUserAgent {
+	case Request:
+		log.LogDebug("Streamer User-Agent set to request-set")
+		return func(r *http.Request) string {
+			return r.UserAgent()
+		}, nil
+	case Extractor:
+		ua, err := xt.GetUserAgent()
+		log.LogDebug("Streamer User-Agent set to", ua)
+		return func(r *http.Request) string {
+			return ua
+		}, err
+	default:
+		return func(r *http.Request) string { return "" },
+			fmt.Errorf("set-streamer-user-agent func creation error. this could not happen")
 	}
 }
