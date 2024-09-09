@@ -18,5 +18,9 @@
         "level": "info",
         "output": "stdout",
         "filename": "log.txt"
+    },
+    "cache": {
+        "expire-time": 10800,
+        "disable": false
     }
 }

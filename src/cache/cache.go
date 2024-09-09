@@ -12,6 +12,11 @@ type T interface {
 	CleanExpired(int64) []extractor.ResultT
 }
 
+type ConfigT struct {
+	ExpireTime *int64 `json:"expire-time"`
+	Disable    bool   `json:"disable"`
+}
+
 type defaultCache struct {
 	sync.Mutex
 	cache map[extractor.RequestT]extractor.ResultT

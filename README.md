@@ -70,5 +70,12 @@ use config.default.json instead.
         "output": "stdout",
         // filename if writing to file
         "filename": "log.txt"
+    },
+    // links cache config
+    "cache": {
+        // default expire time will be used if no "expire" param in video url
+        "expire-time": 10800,
+        // completely disable cache
+        "disable": false
     }
 }

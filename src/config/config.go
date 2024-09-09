@@ -5,6 +5,7 @@ import (
 	"os"
 
 	extractor "ytproxy-extractor"
+	cache "ytproxy-linkscache"
 	logger "ytproxy-logger"
 	streamer "ytproxy-streamer"
 )
@@ -14,6 +15,7 @@ type configT struct {
 	Streamer  streamer.ConfigT  `json:"streamer"`
 	Extractor extractor.ConfigT `json:"extractor"`
 	Log       logger.ConfigT    `json:"log"`
+	Cache     cache.ConfigT     `json:"cache"`
 }
 
 func Read(path string) (configT, error) {
