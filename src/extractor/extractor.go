@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net/url"
 	"os/exec"
-	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -88,18 +86,7 @@ func (t *defaultExtractor) Extract(req RequestT) (ResultT, error) {
 	if err != nil {
 		return ResultT{}, err
 	}
-	var expire int64
-	u, err := url.Parse(out)
-	if err == nil {
-		m, _ := url.ParseQuery(u.RawQuery)
-		if e, ok := m["expire"]; ok {
-			e1, err1 := strconv.ParseInt(e[0], 10, 64)
-			if err1 == nil {
-				expire = e1
-			}
-		}
-	}
-	return ResultT{URL: out, Expire: expire}, err
+	return ResultT{URL: out}, err
 }
 
 func (t *defaultExtractor) runCmd(args string) (string, error) {

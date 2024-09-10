@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	cache "ytproxy-linkscache"
 
 	config "ytproxy-config"
 	extractor "ytproxy-extractor"
@@ -16,7 +17,7 @@ import (
 	streamer "ytproxy-streamer"
 )
 
-const appVersion = "1.0.0"
+const appVersion = "1.2.0"
 
 const (
 	defaultVideoHeight = "720"
@@ -36,6 +37,7 @@ const (
 	ExtractorError
 	StreamerError
 	WebServerError
+	CacheError
 )
 
 func parseCLIFlags() flagsT {
@@ -74,7 +76,13 @@ func main() {
 		os.Exit(ExtractorError)
 	}
 	log.LogDebug("extractor created")
-	cache := linkscache.NewMapCache()
+	cache, err := cache.New(conf.Cache)
+	if err != nil {
+		stderr("Cache make error.")
+		stderr(err.Error())
+		os.Exit(ExtractorError)
+	}
+	log.LogDebug("cache created")
 	restreamer, err := streamer.New(conf.Streamer, log, extr)
 	if err != nil {
 		stderr("Streamer make error.")

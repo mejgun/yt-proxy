@@ -18,6 +18,7 @@ Run with `--help`
   - 3 - extractor create error
   - 4 - streamer create error
   - 5 - web server error
+  - 6 - links cache error
 
 ### Config explained ###
 do not copypaste, comments are not allowed in this json.
