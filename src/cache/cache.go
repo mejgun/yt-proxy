@@ -5,6 +5,7 @@ import (
 	"time"
 
 	extractor "ytproxy-extractor"
+	logger "ytproxy-logger"
 )
 
 type T interface {
@@ -19,7 +20,7 @@ type ConfigT struct {
 
 const defaultExpireTime = 3 * time.Hour
 
-func New(conf ConfigT) (T, error) {
+func New(conf ConfigT, log *logger.T) (T, error) {
 	defCache := func(t time.Duration) *defaultCache {
 		return &defaultCache{
 			cache:      make(map[extractor.RequestT]extractor.ResultT),
@@ -28,6 +29,7 @@ func New(conf ConfigT) (T, error) {
 	}
 	switch {
 	case conf.ExpireTime == nil:
+		log.LogDebug("cache", "no expire time set in config, using default 3h")
 		return defCache(defaultExpireTime), nil
 	default:
 		t, err := time.ParseDuration(*conf.ExpireTime)
@@ -35,6 +37,7 @@ func New(conf ConfigT) (T, error) {
 			return &defaultCache{}, err
 		}
 		if t.Seconds() < 1 {
+			log.LogDebug("cache", "disabled by config")
 			return &emptyCache{}, nil
 		}
 		return defCache(t), nil

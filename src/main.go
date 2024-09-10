@@ -56,40 +56,31 @@ func main() {
 		stdout(appVersion)
 		os.Exit(NoError)
 	}
+	checkOrExit := func(err error, name string, errorcode int) {
+		if err != nil {
+			stderr(fmt.Sprintf("%s create error.", name))
+			stderr(err.Error())
+			os.Exit(errorcode)
+		}
+	}
 	conf, err := config.Read(flags.config)
-	if err != nil {
-		stderr("Config file opening error.")
-		stderr(err.Error())
-		os.Exit(ConfigError)
-	}
+	checkOrExit(err, "Config", ConfigError)
+
 	log, err := logger.New(conf.Log)
-	if err != nil {
-		stderr("Logger create error.")
-		stderr(err.Error())
-		os.Exit(LoggerError)
-	}
+	checkOrExit(err, "Logger", LoggerError)
 	log.LogDebug("logger created")
+
 	extr, err := extractor.New(conf.Extractor)
-	if err != nil {
-		stderr("Extractor make error.")
-		stderr(err.Error())
-		os.Exit(ExtractorError)
-	}
+	checkOrExit(err, "Extractor", ExtractorError)
 	log.LogDebug("extractor created")
-	cache, err := cache.New(conf.Cache)
-	if err != nil {
-		stderr("Cache make error.")
-		stderr(err.Error())
-		os.Exit(ExtractorError)
-	}
+
+	cache, err := cache.New(conf.Cache, log)
+	checkOrExit(err, "Cache", CacheError)
 	log.LogDebug("cache created")
+
 	restreamer, err := streamer.New(conf.Streamer, log, extr)
-	if err != nil {
-		stderr("Streamer make error.")
-		stderr(err.Error())
-		os.Exit(StreamerError)
-	}
-	log.LogDebug("streamer  created")
+	checkOrExit(err, "Streamer", StreamerError)
+	log.LogDebug("streamer created")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
