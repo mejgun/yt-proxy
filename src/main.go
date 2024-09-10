@@ -70,7 +70,7 @@ func main() {
 	checkOrExit(err, "Logger", LoggerError)
 	log.LogDebug("logger created")
 
-	extr, err := extractor.New(conf.Extractor)
+	extr, err := extractor.New(conf.Extractor, log)
 	checkOrExit(err, "Extractor", ExtractorError)
 	log.LogDebug("extractor created")
 

@@ -6,13 +6,15 @@
         "ignore-ssl-errors": false,
         "error-video": "corrupted.mp4",
         "error-audio": "failed.m4a",
-        "set-user-agent": "extractor"
+        "set-user-agent": "extractor",
+        "user-agent": "Mozilla"
     },
     "extractor": {
         "path": "yt-dlp",
         "mp4": "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
         "m4a": "-f,,(m4a),,-g,,{{.URL}}",
-        "get-user-agent": "--dump-user-agent"
+        "get-user-agent": "--dump-user-agent",
+        "custom-options": []
     },
     "log": {
         "level": "info",

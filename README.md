@@ -62,7 +62,17 @@ use config.default.json instead.
         // same for m4a
         "m4a": "-f,,(m4a),,-g,,{{.URL}}",
         // args for getting user-agent
-        "get-user-agent": "--dump-user-agent"
+        "get-user-agent": "--dump-user-agent",
+        // custom options list to extractor, like proxy, etc.
+        // same rules as mp4/m4a
+        // HEIGHT/URL/.. templates also can be used 
+        "custom-options": [
+            "--option1,,value1",
+            "--option2",
+            "value2",
+            "--option3",
+            "very long value 3"
+        ]
     },
     // logger config
     "log": {
