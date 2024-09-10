@@ -44,7 +44,10 @@ use config.default.json instead.
         // how to set streamer's user-agent
         // request - set from user's request (old default)
         // extractor - set from extractor on app start (default)
-        "set-user-agent": "extractor"
+        // config - set from config
+        "set-user-agent": "extractor",
+        // custom user agent used if "set-user-agent" set to "config"
+        "user-agent": "Mozilla"
     },
     // media extractor config
     "extractor": {
@@ -58,7 +61,7 @@ use config.default.json instead.
         "mp4": "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
         // same for m4a
         "m4a": "-f,,(m4a),,-g,,{{.URL}}",
-        // args for getting user-agent (not used yet)
+        // args for getting user-agent
         "get-user-agent": "--dump-user-agent"
     },
     // logger config

@@ -22,6 +22,7 @@ type ConfigT struct {
 	ErrorVideoPath       string        `json:"error-video"`
 	ErrorAudioPath       string        `json:"error-audio"`
 	SetUserAgent         SetUserAgentT `json:"set-user-agent"`
+	UserAgent            string        `json:"user-agent"`
 }
 
 type SetUserAgentT uint8
@@ -29,6 +30,7 @@ type SetUserAgentT uint8
 const (
 	Extractor SetUserAgentT = iota
 	Request
+	Config
 )
 
 func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
@@ -42,6 +44,8 @@ func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
 		*u = Request
 	case "extractor":
 		*u = Extractor
+	case "config":
+		*u = Config
 	default:
 		return fmt.Errorf("cannot unmarshal %s as user-agent", b)
 	}
@@ -259,6 +263,12 @@ func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log *logger.T) (func
 		return func(r *http.Request) string {
 			return ua
 		}, err
+	case Config:
+		ua := conf.UserAgent
+		log.LogDebug("Streamer User-Agent set to", ua)
+		return func(r *http.Request) string {
+			return ua
+		}, nil
 	default:
 		return func(r *http.Request) string { return "" },
 			fmt.Errorf("set-streamer-user-agent func creation error. this could not happen")
