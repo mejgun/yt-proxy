@@ -13,7 +13,7 @@ import (
 	logger "ytproxy-logger"
 )
 
-const separator = ",,	"
+const separator = ",,"
 
 type ConfigT struct {
 	Path          string   `json:"path"`
@@ -103,9 +103,9 @@ func (t *defaultExtractor) Extract(req RequestT) (ResultT, error) {
 		if err != nil {
 			return ResultT{}, err
 		}
-		bufOptions = append(bufOptions, b.String())
+		bufOptions = append(bufOptions, bytesToString(b))
 	}
-	bufOptions = append(bufOptions, buf.String())
+	bufOptions = append(bufOptions, bytesToString(buf))
 	out, err := t.runCmd(strings.Join(bufOptions, separator))
 	if err != nil {
 		return ResultT{}, err
