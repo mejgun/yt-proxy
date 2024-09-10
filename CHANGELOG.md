@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 1.2.0 - 2024-09-10
+### Added
+- cache tuning option
+- cache disabling option
+### Removed
+- youtube expire param reading
+  
 ## 1.1.0 - 2022-04-29
 ### Added
 - new config opt (streamer user-agent)
