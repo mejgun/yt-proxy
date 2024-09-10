@@ -2,31 +2,54 @@ package cache
 
 import (
 	"sync"
+	"time"
 
 	extractor "ytproxy-extractor"
 )
 
 type T interface {
-	Add(extractor.RequestT, extractor.ResultT)
+	Add(extractor.RequestT, extractor.ResultT, time.Time)
 	Get(extractor.RequestT) (extractor.ResultT, bool)
-	CleanExpired(int64) []extractor.ResultT
+	CleanExpired(time.Time) []extractor.ResultT
 }
 
 type ConfigT struct {
-	ExpireTime *int64 `json:"expire-time"`
-	Disable    bool   `json:"disable"`
+	ExpireTime *string `json:"expire-time"`
+}
+
+const defaultExpireTime = 3 * time.Hour
+
+func New(conf ConfigT) (T, error) {
+	defCache := func(t time.Duration) *defaultCache {
+		return &defaultCache{
+			cache:      make(map[extractor.RequestT]extractor.ResultT),
+			expireTime: t,
+		}
+	}
+	switch {
+	case conf.ExpireTime == nil:
+		return defCache(defaultExpireTime), nil
+	default:
+		t, err := time.ParseDuration(*conf.ExpireTime)
+		if err != nil {
+			return &defaultCache{}, err
+		}
+		if t.Seconds() < 1 {
+			return &emptyCache{}, nil
+		}
+		return defCache(t), nil
+	}
 }
 
 type defaultCache struct {
 	sync.Mutex
-	cache map[extractor.RequestT]extractor.ResultT
+	cache      map[extractor.RequestT]extractor.ResultT
+	expireTime time.Duration
 }
 
-func NewMapCache() T {
-	return &defaultCache{cache: make(map[extractor.RequestT]extractor.ResultT)}
-}
-
-func (t *defaultCache) Add(req extractor.RequestT, res extractor.ResultT) {
+func (t *defaultCache) Add(req extractor.RequestT, res extractor.ResultT,
+	now time.Time) {
+	res.Expire = now.Add(t.expireTime)
 	t.Lock()
 	t.cache[req] = res
 	t.Unlock()
@@ -39,15 +62,29 @@ func (t *defaultCache) Get(req extractor.RequestT) (extractor.ResultT, bool) {
 	return v, ok
 }
 
-func (t *defaultCache) CleanExpired(now int64) []extractor.ResultT {
+func (t *defaultCache) CleanExpired(now time.Time) []extractor.ResultT {
 	deleted := make([]extractor.ResultT, 0)
 	t.Lock()
 	for k, v := range t.cache {
-		if v.Expire < now {
+		if v.Expire.Before(now) {
 			delete(t.cache, k)
 			deleted = append(deleted, v)
 		}
 	}
 	t.Unlock()
 	return deleted
+}
+
+type emptyCache struct{}
+
+func (t *emptyCache) Add(req extractor.RequestT, res extractor.ResultT,
+	now time.Time) {
+}
+
+func (t *emptyCache) Get(req extractor.RequestT) (extractor.ResultT, bool) {
+	return extractor.ResultT{}, false
+}
+
+func (t *emptyCache) CleanExpired(now time.Time) []extractor.ResultT {
+	return []extractor.ResultT{}
 }

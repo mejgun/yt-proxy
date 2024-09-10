@@ -18,6 +18,7 @@ Run with `--help`
   - 3 - extractor create error
   - 4 - streamer create error
   - 5 - web server error
+  - 6 - links cache error
 
 ### Config explained ###
 do not copypaste, comments are not allowed in this json.
@@ -73,9 +74,9 @@ use config.default.json instead.
     },
     // links cache config
     "cache": {
-        // default expire time will be used if no "expire" param in video url
-        "expire-time": 10800,
-        // completely disable cache
-        "disable": false
-    }
+        // links expire time
+        // time units are "s", "m", "h", e.g. "1h10m10s", "10h", "1s"
+        // "0s" will disable cache
+        "expire-time": "3h"
+    }   
 }

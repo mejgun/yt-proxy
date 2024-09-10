@@ -39,7 +39,7 @@ func main() {
 	}
 }
 
-// https://github.com/golang/go/blob/master/src/go/build/syslist.go
+// https://github.com/golang/go/blob/master/src/internal/syslist/syslist.go
 
 var knownOS = map[string]bool{
 	"aix":       true,
@@ -57,6 +57,7 @@ var knownOS = map[string]bool{
 	"openbsd":   true,
 	"plan9":     true,
 	"solaris":   true,
+	"wasip1":    true,
 	"windows":   true,
 	"zos":       true,
 }

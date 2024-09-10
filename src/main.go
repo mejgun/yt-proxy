@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	cache "ytproxy-linkscache"
 
 	config "ytproxy-config"
 	extractor "ytproxy-extractor"
@@ -16,7 +17,7 @@ import (
 	streamer "ytproxy-streamer"
 )
 
-const appVersion = "1.0.0"
+const appVersion = "1.2.0"
 
 const (
 	defaultVideoHeight = "720"
@@ -36,6 +37,7 @@ const (
 	ExtractorError
 	StreamerError
 	WebServerError
+	CacheError
 )
 
 func parseCLIFlags() flagsT {
@@ -74,7 +76,13 @@ func main() {
 		os.Exit(ExtractorError)
 	}
 	log.LogDebug("extractor created")
-	cache := linkscache.NewMapCache()
+	cache, err := cache.New(conf.Cache)
+	if err != nil {
+		stderr("Cache make error.")
+		stderr(err.Error())
+		os.Exit(ExtractorError)
+	}
+	log.LogDebug("cache created")
 	restreamer, err := streamer.New(conf.Streamer, log, extr)
 	if err != nil {
 		stderr("Streamer make error.")
@@ -120,8 +128,9 @@ func main() {
 	}
 }
 
-func getLink(query string, log *logger.T, cache linkscache.T, extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
-	now := time.Now().Unix()
+func getLink(query string, log *logger.T, cache linkscache.T,
+	extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
+	now := time.Now()
 	req := parseQuery(query)
 	for _, v := range cache.CleanExpired(now) {
 		log.LogDebug("Clean expired cache", v)
@@ -135,10 +144,7 @@ func getLink(query string, log *logger.T, cache linkscache.T, extractor extracto
 	if err != nil {
 		return req, res, err
 	}
-	if res.Expire == 0 {
-		res.Expire = now + defaultExpireTime
-	}
-	cache.Add(req, res)
+	cache.Add(req, res, now)
 	log.LogDebug("Cache add", res)
 	return req, res, nil
 }
