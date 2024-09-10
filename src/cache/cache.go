@@ -17,19 +17,27 @@ type ConfigT struct {
 	ExpireTime *string `json:"expire-time"`
 }
 
-const defaultExpireTimeInSeconds = 10800
+const defaultExpireTime = 3 * time.Hour
 
 func New(conf ConfigT) (T, error) {
-	switch {
-	case conf.ExpireTime == nil:
-		return T{} //
-	default:
-		t, err := time.ParseDuration(*conf.ExpireTime)
-		c := defaultCache{
+	defCache := func(t time.Duration) *defaultCache {
+		return &defaultCache{
 			cache:      make(map[extractor.RequestT]extractor.ResultT),
 			expireTime: t,
 		}
-		return &c, err
+	}
+	switch {
+	case conf.ExpireTime == nil:
+		return defCache(defaultExpireTime), nil
+	default:
+		t, err := time.ParseDuration(*conf.ExpireTime)
+		if err != nil {
+			return &defaultCache{}, err
+		}
+		if t.Seconds() < 1 {
+			return &emptyCache{}, nil
+		}
+		return defCache(t), nil
 	}
 }
 
@@ -38,8 +46,6 @@ type defaultCache struct {
 	cache      map[extractor.RequestT]extractor.ResultT
 	expireTime time.Duration
 }
-
-var timeToInt64 = func(t time.Time) int64 { return t.Unix() }
 
 func (t *defaultCache) Add(req extractor.RequestT, res extractor.ResultT,
 	now time.Time) {
@@ -67,4 +73,18 @@ func (t *defaultCache) CleanExpired(now time.Time) []extractor.ResultT {
 	}
 	t.Unlock()
 	return deleted
+}
+
+type emptyCache struct{}
+
+func (t *emptyCache) Add(req extractor.RequestT, res extractor.ResultT,
+	now time.Time) {
+}
+
+func (t *emptyCache) Get(req extractor.RequestT) (extractor.ResultT, bool) {
+	return extractor.ResultT{}, false
+}
+
+func (t *emptyCache) CleanExpired(now time.Time) []extractor.ResultT {
+	return []extractor.ResultT{}
 }
