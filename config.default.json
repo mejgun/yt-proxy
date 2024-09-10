@@ -20,7 +20,6 @@
         "filename": "log.txt"
     },
     "cache": {
-        "expire-time": 10800,
-        "disable": false
+        "expire-time": "3h"
     }
 }

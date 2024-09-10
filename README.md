@@ -73,9 +73,9 @@ use config.default.json instead.
     },
     // links cache config
     "cache": {
-        // default expire time will be used if no "expire" param in video url
-        "expire-time": 10800,
-        // completely disable cache
-        "disable": false
-    }
+        // links expire time
+        // time units are "s", "m", "h", e.g. "1h10m10s", "10h", "1s"
+        // "0s" will disable cache
+        "expire-time": "3h"
+    }   
 }
