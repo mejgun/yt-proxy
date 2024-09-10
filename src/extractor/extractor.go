@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 )
 
 const separator = ",,"
@@ -23,7 +24,7 @@ type ConfigT struct {
 
 type ResultT struct {
 	URL    string
-	Expire int64
+	Expire time.Time
 }
 
 type T interface {

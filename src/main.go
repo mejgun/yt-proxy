@@ -120,8 +120,9 @@ func main() {
 	}
 }
 
-func getLink(query string, log *logger.T, cache linkscache.T, extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
-	now := time.Now().Unix()
+func getLink(query string, log *logger.T, cache linkscache.T,
+	extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
+	now := time.Now()
 	req := parseQuery(query)
 	for _, v := range cache.CleanExpired(now) {
 		log.LogDebug("Clean expired cache", v)
@@ -135,10 +136,7 @@ func getLink(query string, log *logger.T, cache linkscache.T, extractor extracto
 	if err != nil {
 		return req, res, err
 	}
-	if res.Expire == 0 {
-		res.Expire = now + defaultExpireTime
-	}
-	cache.Add(req, res)
+	cache.Add(req, res, now)
 	log.LogDebug("Cache add", res)
 	return req, res, nil
 }
