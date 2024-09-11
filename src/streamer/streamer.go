@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -23,6 +24,7 @@ type ConfigT struct {
 	ErrorAudioPath       string        `json:"error-audio"`
 	SetUserAgent         SetUserAgentT `json:"set-user-agent"`
 	UserAgent            string        `json:"user-agent"`
+	Proxy                string        `json:"proxy"`
 }
 
 type SetUserAgentT uint8
@@ -80,8 +82,9 @@ type fileT struct {
 
 func New(conf ConfigT, log *logger.T, xt extractor.T) (T, error) {
 	var (
-		s   streamer
-		err error
+		s    streamer
+		err  error
+		logs []string
 	)
 	s.errorVideoFile, err = readFile(conf.ErrorVideoPath)
 	if err != nil {
@@ -93,7 +96,13 @@ func New(conf ConfigT, log *logger.T, xt extractor.T) (T, error) {
 		return &s, err
 	}
 	s.errorAudioFile.contentType = "audio/mp4"
-	s.httpRequest = makeDoRequestFunc(conf)
+	s.httpRequest, logs, err = makeDoRequestFunc(conf)
+	for _, v := range logs {
+		log.LogDebug("streamer", v)
+	}
+	if err != nil {
+		return &s, err
+	}
 	s.sendErrorFile = makeSendErrorVideoFunc(conf)
 	s.setHeaders = makeSetHeaders(conf)
 	s.setStreamerUserAgent, err = makeSetStreamerUserAgent(conf, xt, log)
@@ -189,17 +198,33 @@ func errorToHeaders(e error) ([]string, []string) {
 	return headers, filtered
 }
 
-func makeDoRequestFunc(conf ConfigT) doRequestF {
-	var tr *http.Transport
+func makeDoRequestFunc(conf ConfigT) (doRequestF, []string, error) {
+	tr := &http.Transport{}
+	logs := make([]string, 0)
 	if conf.IgnoreSSLErrors {
-		tr = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	} else {
-		tr = &http.Transport{}
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		logs = append(logs, "ignoring SSL errors")
+	}
+	switch conf.Proxy {
+	case "":
+		logs = append(logs, "no proxy set")
+	case "env":
+		tr.Proxy = http.ProxyFromEnvironment
+		logs = append(logs, "proxy set to environment")
+	default:
+		logs = append(logs, fmt.Sprintf("proxy set to '%s'", conf.Proxy))
+		u, err := url.Parse(conf.Proxy)
+		if err != nil {
+			return func(r *http.Request) (*http.Response, error) {
+				return &http.Response{}, nil
+			}, logs, err
+		}
+		tr.Proxy = http.ProxyURL(u)
 	}
 	return func(request *http.Request) (*http.Response, error) {
 		client := &http.Client{Transport: tr}
 		return client.Do(request)
-	}
+	}, logs, nil
 }
 
 func makeSendErrorVideoFunc(conf ConfigT) sendErrorFileF {

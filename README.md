@@ -47,7 +47,12 @@ use config.default.json instead.
         // config - set from config
         "set-user-agent": "extractor",
         // custom user agent used if "set-user-agent" set to "config"
-        "user-agent": "Mozilla"
+        "user-agent": "Mozilla",
+        // proxy for restreamer
+        // empty - no proxy
+        // "env" - read proxy from environment variables (e.g. HTTP_PROXY="http://127.0.0.1:3128")
+        // proxy url - e.g. "socks5://127.0.0.1:9999"
+        "proxy": "env"
     },
     // media extractor config
     "extractor": {

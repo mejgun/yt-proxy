@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 1.4.0 - 2024-09-11
+### Added
+- streamer proxy support
+
 ## 1.3.0 - 2024-09-10
 ### Added
 - set custom user agent to streamer from config
