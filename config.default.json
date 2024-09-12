@@ -7,7 +7,8 @@
         "error-video": "corrupted.mp4",
         "error-audio": "failed.m4a",
         "set-user-agent": "extractor",
-        "user-agent": "Mozilla"
+        "user-agent": "Mozilla",
+        "proxy": "env"
     },
     "extractor": {
         "path": "yt-dlp",
