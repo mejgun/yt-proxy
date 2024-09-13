@@ -97,19 +97,23 @@ func New(conf ConfigT) (*T, error) {
 	var (
 		l *log.Logger = log.Default()
 	)
+	open := func() (*os.File, error) {
+		return os.OpenFile(
+			// will never close this file :|
+			// should trap exit
+			conf.FileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664)
+	}
 	switch conf.Output {
 	case Stdout:
 		l.SetOutput(os.Stdout)
 	case File:
-		f, err := os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := open()
 		if err != nil {
 			return &logger, err
 		}
-		// will never close this file :|
-		// should trap exit
 		l.SetOutput(f)
 	case Both:
-		f, err := os.OpenFile(conf.FileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := open()
 		if err != nil {
 			return &logger, err
 		}
