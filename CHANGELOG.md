@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 1.5.0 - 2024-09-13
+### Added
+- streamer tls version configuring
+### Fixed
+- log file creating
+
 ## 1.4.0 - 2024-09-11
 ### Added
 - streamer proxy support

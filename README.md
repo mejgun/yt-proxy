@@ -52,7 +52,9 @@ use config.default.json instead.
         // empty - no proxy
         // "env" - read proxy from environment variables (e.g. HTTP_PROXY="http://127.0.0.1:3128")
         // proxy url - e.g. "socks5://127.0.0.1:9999"
-        "proxy": "env"
+        "proxy": "env",
+        // min TLS version:  "TLS 1.3", "TLS 1.2", etc.
+        "min-tls-version": "TLS 1.2     "
     },
     // media extractor config
     "extractor": {

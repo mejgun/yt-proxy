@@ -8,7 +8,8 @@
         "error-audio": "failed.m4a",
         "set-user-agent": "extractor",
         "user-agent": "Mozilla",
-        "proxy": "env"
+        "proxy": "env",
+        "min-tls-version": "TLS 1.2"
     },
     "extractor": {
         "path": "yt-dlp",

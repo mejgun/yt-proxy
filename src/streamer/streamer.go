@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,6 +26,32 @@ type ConfigT struct {
 	SetUserAgent         SetUserAgentT `json:"set-user-agent"`
 	UserAgent            string        `json:"user-agent"`
 	Proxy                string        `json:"proxy"`
+	MinTlsVersion        tlsVersion    `json:"min-tls-version"`
+}
+
+type tlsVersion uint16
+
+func (u *tlsVersion) UnmarshalJSON(b []byte) error {
+	var (
+		s string
+		i uint16
+	)
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	eq := func(teststring string) bool {
+		return s == teststring
+	}
+	if eq("") {
+		return nil
+	}
+	for i = 0; i < math.MaxUint16; i++ {
+		if eq(tls.VersionName(i)) {
+			*u = tlsVersion(i)
+			return nil
+		}
+	}
+	return fmt.Errorf("cannot unmarshal %s as TLS version", b)
 }
 
 type SetUserAgentT uint8
@@ -201,6 +228,15 @@ func errorToHeaders(e error) ([]string, []string) {
 func makeDoRequestFunc(conf ConfigT) (doRequestF, []string, error) {
 	tr := &http.Transport{}
 	logs := make([]string, 0)
+	func() {
+		mintls := uint16(conf.MinTlsVersion)
+		tr.TLSClientConfig = &tls.Config{MinVersion: mintls}
+		if mintls > 0 {
+			logs = append(logs,
+				fmt.Sprintf("streamer min TLS version set to: %s",
+					tls.VersionName(mintls)))
+		}
+	}()
 	if conf.IgnoreSSLErrors {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		logs = append(logs, "ignoring SSL errors")
