@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"strings"
 
 	extractor "ytproxy-extractor"
 	cache "ytproxy-linkscache"
@@ -24,6 +25,19 @@ func Read(path string) (configT, error) {
 	if err != nil {
 		return c, err
 	}
+	func() {
+		strs := make([]string, 0)
+		for _, s := range strings.Split(string(b[:]), "\n") {
+			s = strings.TrimSpace(s)
+			if !strings.HasPrefix(s, "//") {
+				strs = append(strs, s)
+			}
+		}
+		str := strings.Join(strs, "\n")
+		b = b[:0]
+		b = []byte(str)
+
+	}()
 	err = json.Unmarshal(b, &c)
 	return c, err
 }

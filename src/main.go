@@ -8,16 +8,15 @@ import (
 	"os"
 	"strings"
 	"time"
-	cache "ytproxy-linkscache"
 
 	config "ytproxy-config"
 	extractor "ytproxy-extractor"
-	linkscache "ytproxy-linkscache"
+	cache "ytproxy-linkscache"
 	logger "ytproxy-logger"
 	streamer "ytproxy-streamer"
 )
 
-const appVersion = "1.5.0"
+const appVersion = "1.6.0"
 
 const (
 	defaultVideoHeight = "720"
@@ -119,7 +118,7 @@ func main() {
 	}
 }
 
-func getLink(query string, log *logger.T, cache linkscache.T,
+func getLink(query string, log *logger.T, cache cache.T,
 	extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
 	now := time.Now()
 	req := parseQuery(query)
