@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,8 +19,6 @@ type ConfigT struct {
 	ExpireTime *string `json:"expire-time"`
 }
 
-const defaultExpireTime = 3 * time.Hour
-
 func New(conf ConfigT, log *logger.T) (T, error) {
 	defCache := func(t time.Duration) *defaultCache {
 		return &defaultCache{
@@ -27,21 +26,16 @@ func New(conf ConfigT, log *logger.T) (T, error) {
 			expireTime: t,
 		}
 	}
-	switch {
-	case conf.ExpireTime == nil:
-		log.LogDebug("cache", "no expire time set in config, using default 3h")
-		return defCache(defaultExpireTime), nil
-	default:
-		t, err := time.ParseDuration(*conf.ExpireTime)
-		if err != nil {
-			return &defaultCache{}, err
-		}
-		if t.Seconds() < 1 {
-			log.LogDebug("cache", "disabled by config")
-			return &emptyCache{}, nil
-		}
-		return defCache(t), nil
+	t, err := time.ParseDuration(*conf.ExpireTime)
+	if err != nil {
+		return &defaultCache{}, err
 	}
+	if t.Seconds() < 1 {
+		log.LogDebug("cache", "disabled by config")
+		return &emptyCache{}, nil
+	}
+	log.LogDebug("cache", fmt.Sprintf("expire time set to %s", t))
+	return defCache(t), nil
 }
 
 type defaultCache struct {

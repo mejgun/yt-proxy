@@ -37,6 +37,7 @@ func defaultConfig() configT {
 	ll := logger.Info
 	lo := logger.Stdout
 	lf := "log.txt"
+	exp := "3h"
 	return configT{
 		PortInt: 8080,
 		Streamer: streamer.ConfigT{
@@ -62,7 +63,9 @@ func defaultConfig() configT {
 			Output:   &lo,
 			FileName: &lf,
 		},
-		Cache: cache.ConfigT{},
+		Cache: cache.ConfigT{
+			ExpireTime: &exp,
+		},
 	}
 }
 
@@ -125,6 +128,10 @@ func appendConfig(src configT, dst configT) configT {
 	}
 	if dst.Log.FileName == nil {
 		dst.Log.FileName = src.Log.FileName
+	}
+	// cache
+	if dst.Cache.ExpireTime == nil {
+		dst.Cache.ExpireTime = src.Cache.ExpireTime
 	}
 	return dst
 }
