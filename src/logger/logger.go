@@ -19,9 +19,9 @@ type T struct {
 }
 
 type ConfigT struct {
-	Level    LevelT  `json:"level"`
-	Output   OutputT `json:"output"`
-	FileName string  `json:"filename"`
+	Level    *LevelT  `json:"level"`
+	Output   *OutputT `json:"output"`
+	FileName *string  `json:"filename"`
 }
 
 type LevelT uint8
@@ -91,7 +91,7 @@ func New(conf ConfigT) (*T, error) {
 		LogDebug:   func(s string, i ...interface{}) {},
 		LogInfo:    func(s string, i ...interface{}) {},
 	}
-	if conf.Level == Nothing {
+	if *conf.Level == Nothing {
 		return &logger, nil
 	}
 	var (
@@ -101,9 +101,9 @@ func New(conf ConfigT) (*T, error) {
 		return os.OpenFile(
 			// will never close this file :|
 			// should trap exit
-			conf.FileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664)
+			*conf.FileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664)
 	}
-	switch conf.Output {
+	switch *conf.Output {
 	case Stdout:
 		l.SetOutput(os.Stdout)
 	case File:
@@ -124,7 +124,7 @@ func New(conf ConfigT) (*T, error) {
 			fmt.Sprintf("[ %s ] %s:", str, s) +
 				fmt.Sprintf(strings.Repeat(" %+v", len(i)), i...))
 	}
-	switch conf.Level {
+	switch *conf.Level {
 	case Debug:
 		logger.LogDebug = func(s string, i ...interface{}) { print("DEBUG", s, i) }
 		fallthrough

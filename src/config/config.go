@@ -34,6 +34,9 @@ func defaultConfig() configT {
 		"--dump-user-agent",
 	}
 	co := make([]string, 0)
+	ll := logger.Info
+	lo := logger.Stdout
+	lf := "log.txt"
 	return configT{
 		PortInt: 8080,
 		Streamer: streamer.ConfigT{
@@ -51,10 +54,14 @@ func defaultConfig() configT {
 			Path:          &e[0],
 			MP4:           &e[1],
 			M4A:           &e[2],
-			GetUserAgent:  &e[2],
+			GetUserAgent:  &e[3],
 			CustomOptions: &co,
 		},
-		Log:   logger.ConfigT{},
+		Log: logger.ConfigT{
+			Level:    &ll,
+			Output:   &lo,
+			FileName: &lf,
+		},
 		Cache: cache.ConfigT{},
 	}
 }
@@ -108,6 +115,16 @@ func appendConfig(src configT, dst configT) configT {
 	}
 	if dst.Extractor.CustomOptions == nil {
 		dst.Extractor.CustomOptions = src.Extractor.CustomOptions
+	}
+	// logger
+	if dst.Log.Level == nil {
+		dst.Log.Level = src.Log.Level
+	}
+	if dst.Log.Output == nil {
+		dst.Log.Output = src.Log.Output
+	}
+	if dst.Log.FileName == nil {
+		dst.Log.FileName = src.Log.FileName
 	}
 	return dst
 }
