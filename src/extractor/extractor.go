@@ -16,11 +16,11 @@ import (
 const separator = ",,"
 
 type ConfigT struct {
-	Path          string   `json:"path"`
-	MP4           string   `json:"mp4"`
-	M4A           string   `json:"m4a"`
-	GetUserAgent  string   `json:"get-user-agent"`
-	CustomOptions []string `json:"custom-options"`
+	Path          *string   `json:"path"`
+	MP4           *string   `json:"mp4"`
+	M4A           *string   `json:"m4a"`
+	GetUserAgent  *string   `json:"get-user-agent"`
+	CustomOptions *[]string `json:"custom-options"`
 }
 
 type ResultT struct {
@@ -54,24 +54,24 @@ func New(c ConfigT, log *logger.T) (T, error) {
 		e   defaultExtractor
 		err error
 	)
-	e.m4a, err = template.New("").Parse(c.M4A)
+	e.m4a, err = template.New("").Parse(*c.M4A)
 	if err != nil {
 		return &e, err
 	}
-	e.mp4, err = template.New("").Parse(c.MP4)
+	e.mp4, err = template.New("").Parse(*c.MP4)
 	if err != nil {
 		return &e, err
 	}
 	e.customOptions = make([]*template.Template, 0)
-	for _, v := range c.CustomOptions {
+	for _, v := range *c.CustomOptions {
 		b, err := template.New("").Parse(v)
 		if err != nil {
 			return &e, err
 		}
 		e.customOptions = append(e.customOptions, b)
 	}
-	e.getUserAgent = c.GetUserAgent
-	e.path = c.Path
+	e.getUserAgent = *c.GetUserAgent
+	e.path = *c.Path
 	e.logger = log
 	return &e, nil
 }

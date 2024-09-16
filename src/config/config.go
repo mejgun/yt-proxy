@@ -28,6 +28,12 @@ func defaultConfig() configT {
 		"Mozilla",
 		"env",
 	}
+	var e = [4]string{"yt-dlp",
+		"-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
+		"-f,,(m4a),,-g,,{{.URL}}",
+		"--dump-user-agent",
+	}
+	co := make([]string, 0)
 	return configT{
 		PortInt: 8080,
 		Streamer: streamer.ConfigT{
@@ -41,16 +47,25 @@ func defaultConfig() configT {
 			Proxy:                &s[3],
 			MinTlsVersion:        &tv,
 		},
-		Extractor: extractor.ConfigT{},
-		Log:       logger.ConfigT{},
-		Cache:     cache.ConfigT{},
+		Extractor: extractor.ConfigT{
+			Path:          &e[0],
+			MP4:           &e[1],
+			M4A:           &e[2],
+			GetUserAgent:  &e[2],
+			CustomOptions: &co,
+		},
+		Log:   logger.ConfigT{},
+		Cache: cache.ConfigT{},
 	}
 }
 
+// add second config options to first
 func appendConfig(src configT, dst configT) configT {
+	// general options
 	if dst.PortInt == 0 {
 		dst.PortInt = src.PortInt
 	}
+	// streamer
 	if dst.Streamer.EnableErrorHeaders == nil {
 		dst.Streamer.EnableErrorHeaders = src.Streamer.EnableErrorHeaders
 	}
@@ -77,6 +92,22 @@ func appendConfig(src configT, dst configT) configT {
 	}
 	if dst.Streamer.MinTlsVersion == nil {
 		dst.Streamer.MinTlsVersion = src.Streamer.MinTlsVersion
+	}
+	// extractor
+	if dst.Extractor.Path == nil {
+		dst.Extractor.Path = src.Extractor.Path
+	}
+	if dst.Extractor.MP4 == nil {
+		dst.Extractor.MP4 = src.Extractor.MP4
+	}
+	if dst.Extractor.M4A == nil {
+		dst.Extractor.M4A = src.Extractor.M4A
+	}
+	if dst.Extractor.GetUserAgent == nil {
+		dst.Extractor.GetUserAgent = src.Extractor.GetUserAgent
+	}
+	if dst.Extractor.CustomOptions == nil {
+		dst.Extractor.CustomOptions = src.Extractor.CustomOptions
 	}
 	return dst
 }
