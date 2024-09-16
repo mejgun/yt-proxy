@@ -65,7 +65,7 @@ func main() {
 	conf, err := config.Read(flags.config)
 	checkOrExit(err, "Config", ConfigError)
 
-	log, err := logger.New(conf.Log)
+	log, err := logger.NewDefault(conf.Log)
 	checkOrExit(err, "Logger", LoggerError)
 	log.LogDebug("logger created")
 
