@@ -18,24 +18,27 @@ import (
 const defaultErrorHeader = "Error-Header-"
 
 type ConfigT struct {
-	EnableErrorHeaders   bool          `json:"error-headers"`
-	IgnoreMissingHeaders bool          `json:"ignore-missing-headers"`
-	IgnoreSSLErrors      bool          `json:"ignore-ssl-errors"`
-	ErrorVideoPath       string        `json:"error-video"`
-	ErrorAudioPath       string        `json:"error-audio"`
-	SetUserAgent         SetUserAgentT `json:"set-user-agent"`
-	UserAgent            string        `json:"user-agent"`
-	Proxy                string        `json:"proxy"`
-	MinTlsVersion        tlsVersion    `json:"min-tls-version"`
+	EnableErrorHeaders   *bool          `json:"error-headers"`
+	IgnoreMissingHeaders *bool          `json:"ignore-missing-headers"`
+	IgnoreSSLErrors      *bool          `json:"ignore-ssl-errors"`
+	ErrorVideoPath       *string        `json:"error-video"`
+	ErrorAudioPath       *string        `json:"error-audio"`
+	SetUserAgent         *SetUserAgentT `json:"set-user-agent"`
+	UserAgent            *string        `json:"user-agent"`
+	Proxy                *string        `json:"proxy"`
+	MinTlsVersion        *TlsVersion    `json:"min-tls-version"`
 }
 
-type tlsVersion uint16
+type TlsVersion uint16
 
-func (u *tlsVersion) UnmarshalJSON(b []byte) error {
+func (u *TlsVersion) UnmarshalJSON(b []byte) error {
 	var (
 		s string
 		i uint16
 	)
+	if u == nil {
+		return nil
+	}
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
 	}
@@ -47,7 +50,7 @@ func (u *tlsVersion) UnmarshalJSON(b []byte) error {
 	}
 	for i = 0; i < math.MaxUint16; i++ {
 		if eq(tls.VersionName(i)) {
-			*u = tlsVersion(i)
+			*u = TlsVersion(i)
 			return nil
 		}
 	}
@@ -113,12 +116,12 @@ func New(conf ConfigT, log *logger.T, xt extractor.T) (T, error) {
 		err  error
 		logs []string
 	)
-	s.errorVideoFile, err = readFile(conf.ErrorVideoPath)
+	s.errorVideoFile, err = readFile(*conf.ErrorVideoPath)
 	if err != nil {
 		return &s, err
 	}
 	s.errorVideoFile.contentType = "video/mp4"
-	s.errorAudioFile, err = readFile(conf.ErrorAudioPath)
+	s.errorAudioFile, err = readFile(*conf.ErrorAudioPath)
 	if err != nil {
 		return &s, err
 	}
@@ -229,7 +232,7 @@ func makeDoRequestFunc(conf ConfigT) (doRequestF, []string, error) {
 	tr := &http.Transport{}
 	logs := make([]string, 0)
 	func() {
-		mintls := uint16(conf.MinTlsVersion)
+		mintls := uint16(*conf.MinTlsVersion)
 		tr.TLSClientConfig = &tls.Config{MinVersion: mintls}
 		if mintls > 0 {
 			logs = append(logs,
@@ -237,19 +240,19 @@ func makeDoRequestFunc(conf ConfigT) (doRequestF, []string, error) {
 					tls.VersionName(mintls)))
 		}
 	}()
-	if conf.IgnoreSSLErrors {
+	if *conf.IgnoreSSLErrors {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		logs = append(logs, "ignoring SSL errors")
 	}
-	switch conf.Proxy {
+	switch *conf.Proxy {
 	case "":
 		logs = append(logs, "no proxy set")
 	case "env":
 		tr.Proxy = http.ProxyFromEnvironment
 		logs = append(logs, "proxy set to environment")
 	default:
-		logs = append(logs, fmt.Sprintf("proxy set to '%s'", conf.Proxy))
-		u, err := url.Parse(conf.Proxy)
+		logs = append(logs, fmt.Sprintf("proxy set to '%s'", *conf.Proxy))
+		u, err := url.Parse(*conf.Proxy)
 		if err != nil {
 			return func(r *http.Request) (*http.Response, error) {
 				return &http.Response{}, nil
@@ -267,7 +270,7 @@ func makeSendErrorVideoFunc(conf ConfigT) sendErrorFileF {
 	return func(w http.ResponseWriter, err error, file fileT) error {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", file.contentLength))
 		w.Header().Set("Content-Type", file.contentType)
-		if conf.EnableErrorHeaders {
+		if *conf.EnableErrorHeaders {
 			hdrs, errs := errorToHeaders(err)
 			for i := range hdrs {
 				w.Header().Set(hdrs[i], errs[i])
@@ -279,7 +282,7 @@ func makeSendErrorVideoFunc(conf ConfigT) sendErrorFileF {
 }
 
 func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) error {
-	headersStrictCheck := !conf.IgnoreMissingHeaders
+	headersStrictCheck := !*conf.IgnoreMissingHeaders
 	return func(w http.ResponseWriter, res *http.Response) error {
 		h1, ok := res.Header["Content-Length"]
 		if !ok && headersStrictCheck {
@@ -312,7 +315,7 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 }
 
 func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log *logger.T) (func(*http.Request) string, error) {
-	switch conf.SetUserAgent {
+	switch *conf.SetUserAgent {
 	case Request:
 		log.LogDebug("Streamer User-Agent set to request-set")
 		return func(r *http.Request) string {
@@ -328,7 +331,7 @@ func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log *logger.T) (func
 		ua := conf.UserAgent
 		log.LogDebug("Streamer User-Agent set to", ua)
 		return func(r *http.Request) string {
-			return ua
+			return *ua
 		}, nil
 	default:
 		return func(r *http.Request) string { return "" },

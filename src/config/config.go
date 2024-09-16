@@ -19,6 +19,68 @@ type configT struct {
 	Cache     cache.ConfigT     `json:"cache"`
 }
 
+func defaultConfig() configT {
+	fls := false
+	ext := streamer.Extractor
+	tv := streamer.TlsVersion(0)
+	var s = [4]string{"corrupted.mp4",
+		"failed.m4a",
+		"Mozilla",
+		"env",
+	}
+	return configT{
+		PortInt: 8080,
+		Streamer: streamer.ConfigT{
+			EnableErrorHeaders:   &fls,
+			IgnoreMissingHeaders: &fls,
+			IgnoreSSLErrors:      &fls,
+			ErrorVideoPath:       &s[0],
+			ErrorAudioPath:       &s[1],
+			SetUserAgent:         &ext,
+			UserAgent:            &s[2],
+			Proxy:                &s[3],
+			MinTlsVersion:        &tv,
+		},
+		Extractor: extractor.ConfigT{},
+		Log:       logger.ConfigT{},
+		Cache:     cache.ConfigT{},
+	}
+}
+
+func appendConfig(src configT, dst configT) configT {
+	if dst.PortInt == 0 {
+		dst.PortInt = src.PortInt
+	}
+	if dst.Streamer.EnableErrorHeaders == nil {
+		dst.Streamer.EnableErrorHeaders = src.Streamer.EnableErrorHeaders
+	}
+	if dst.Streamer.IgnoreMissingHeaders == nil {
+		dst.Streamer.IgnoreMissingHeaders = src.Streamer.IgnoreMissingHeaders
+	}
+	if dst.Streamer.IgnoreSSLErrors == nil {
+		dst.Streamer.IgnoreSSLErrors = src.Streamer.IgnoreSSLErrors
+	}
+	if dst.Streamer.ErrorVideoPath == nil {
+		dst.Streamer.ErrorVideoPath = src.Streamer.ErrorVideoPath
+	}
+	if dst.Streamer.ErrorAudioPath == nil {
+		dst.Streamer.ErrorAudioPath = src.Streamer.ErrorAudioPath
+	}
+	if dst.Streamer.SetUserAgent == nil {
+		dst.Streamer.SetUserAgent = src.Streamer.SetUserAgent
+	}
+	if dst.Streamer.UserAgent == nil {
+		dst.Streamer.UserAgent = src.Streamer.UserAgent
+	}
+	if dst.Streamer.Proxy == nil {
+		dst.Streamer.Proxy = src.Streamer.Proxy
+	}
+	if dst.Streamer.MinTlsVersion == nil {
+		dst.Streamer.MinTlsVersion = src.Streamer.MinTlsVersion
+	}
+	return dst
+}
+
 func Read(path string) (configT, error) {
 	var c configT
 	b, err := os.ReadFile(path)
@@ -39,5 +101,5 @@ func Read(path string) (configT, error) {
 
 	}()
 	err = json.Unmarshal(b, &c)
-	return c, err
+	return appendConfig(defaultConfig(), c), err
 }
