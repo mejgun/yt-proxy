@@ -4,10 +4,7 @@ This is yt-dlp based video restreamer, part of another project: https://github.c
 
 ### Build ###
 
-```
-cd src
-go build
-```
+`cd src && go build`
 
 ### Options ###
 
