@@ -5,6 +5,7 @@ import (
 
 	extractor_config "lib/extractor/config"
 	extractor_default "lib/extractor/impl/default"
+	extractor_direct "lib/extractor/impl/direct"
 	logger "lib/logger"
 )
 
@@ -16,18 +17,23 @@ type T interface {
 }
 
 func New(c extractor_config.ConfigT, log logger.T) (T, error) {
-	co := make([]string, 0)
-	for _, v := range *c.CustomOptions {
-		co = append(co, split(v)...)
+	switch *c.Path {
+	case "direct":
+		return extractor_direct.New()
+	default:
+		co := make([]string, 0)
+		for _, v := range *c.CustomOptions {
+			co = append(co, split(v)...)
+		}
+		return extractor_default.New(
+			*c.Path,
+			split(*c.MP4),
+			split(*c.M4A),
+			*c.GetUserAgent,
+			co,
+			log,
+		)
 	}
-	return extractor_default.New(
-		*c.Path,
-		split(*c.MP4),
-		split(*c.M4A),
-		*c.GetUserAgent,
-		co,
-		log,
-	)
 }
 
 func split(s string) []string {
