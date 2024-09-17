@@ -4,18 +4,29 @@ import (
 	"io"
 	"log/slog"
 	"os"
+
+	l "lib/logger/config"
 )
 
-func NewSlog(conf ConfigT) (*T, error) {
-	var logger = T{
-		LogError:   func(s string, i ...interface{}) {},
-		LogWarning: func(s string, i ...interface{}) {},
-		LogDebug:   func(s string, i ...interface{}) {},
-		LogInfo:    func(s string, i ...interface{}) {},
-	}
-	if *conf.Level == Nothing {
-		return &logger, nil
-	}
+type loggerT struct {
+	lgr *slog.Logger
+}
+
+func (t *loggerT) LogError(s string, i ...any) {
+	t.lgr.Error(s, i...)
+}
+func (t *loggerT) LogWarning(s string, i ...any) {
+	t.lgr.Warn(s, i...)
+}
+func (t *loggerT) LogDebug(s string, i ...any) {
+	t.lgr.Debug(s, i...)
+
+}
+func (t *loggerT) LogInfo(s string, i ...any) {
+	t.lgr.Info(s, i...)
+}
+
+func New(conf l.ConfigT) (*loggerT, error) {
 	open := func() (*os.File, error) {
 		return os.OpenFile(
 			// will never close this file :|
@@ -24,50 +35,40 @@ func NewSlog(conf ConfigT) (*T, error) {
 	}
 	var (
 		lvl slog.Level
-		l   *slog.Logger
+		lgr *slog.Logger
 	)
 	switch *conf.Level {
-	case Debug:
+	case l.Debug:
 		lvl = slog.LevelDebug
-	case Info:
+	case l.Info:
 		lvl = slog.LevelInfo
-	case Warning:
+	case l.Warning:
 		lvl = slog.LevelWarn
-	case Error:
+	case l.Error:
 		lvl = slog.LevelError
 	}
 	mkLogger := func(dst io.Writer) {
-		l = slog.New(
-			slog.NewTextHandler(dst,
+		lgr = slog.New(
+			slog.NewJSONHandler(dst,
 				&slog.HandlerOptions{Level: lvl}))
 	}
 	switch *conf.Output {
-	case Stdout:
+	case l.Stdout:
 		mkLogger(os.Stdout)
-	case File:
+	case l.File:
 		f, err := open()
 		if err != nil {
-			return &logger, err
+			return &loggerT{}, err
 		}
 		mkLogger(f)
-	case Both:
+	case l.Both:
 		f, err := open()
 		if err != nil {
-			return &logger, err
+			return &loggerT{}, err
 		}
 		mkLogger(io.MultiWriter(os.Stdout, f))
 	}
-	logger.LogDebug = func(s string, i ...interface{}) {
-		l.Debug(s, i...)
-	}
-	logger.LogInfo = func(s string, i ...interface{}) {
-		l.Info(s, i...)
-	}
-	logger.LogWarning = func(s string, i ...interface{}) {
-		l.Warn(s, i...)
-	}
-	logger.LogError = func(s string, i ...interface{}) {
-		l.Error(s, i...)
-	}
-	return &logger, nil
+	return &loggerT{
+		lgr: lgr,
+	}, nil
 }

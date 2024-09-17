@@ -7,6 +7,7 @@ import (
 
 type ConfigT struct {
 	Level    *LevelT  `json:"level"`
+	Json     *bool    `json:"json"`
 	Output   *OutputT `json:"output"`
 	FileName *string  `json:"filename"`
 }

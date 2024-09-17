@@ -60,6 +60,7 @@ func defaultConfig() configT {
 		},
 		Log: logger_config.ConfigT{
 			Level:    &ll,
+			Json:     &fls,
 			Output:   &lo,
 			FileName: &lf,
 		},
@@ -122,6 +123,9 @@ func appendConfig(src configT, dst configT) configT {
 	// logger
 	if dst.Log.Level == nil {
 		dst.Log.Level = src.Log.Level
+	}
+	if dst.Log.Json == nil {
+		dst.Log.Json = src.Log.Json
 	}
 	if dst.Log.Output == nil {
 		dst.Log.Output = src.Log.Output

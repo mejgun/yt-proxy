@@ -46,9 +46,6 @@ func New(conf l.ConfigT) (*loggerT, error) {
 		logger loggerT
 		lgr    *log.Logger = log.Default()
 	)
-	if *conf.Level == l.Nothing {
-		return &logger, nil
-	}
 	open := func() (*os.File, error) {
 		return os.OpenFile(
 			// will never close this file :|
