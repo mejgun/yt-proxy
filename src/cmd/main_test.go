@@ -46,3 +46,24 @@ func TestParseQuery(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveHttp(t *testing.T) {
+	for _, v := range []struct {
+		link string
+		want string
+	}{
+		{link: "youtu.be/", want: "youtu.be/"},
+		{link: "https:////youtu.be/", want: "youtu.be/"},
+		{link: "https:///youtu.be/", want: "youtu.be/"},
+		{link: "https://youtu.be/", want: "youtu.be/"},
+		{link: "https:/youtu.be/", want: "youtu.be/"},
+		{link: "http:////www.youtu.be/", want: "www.youtu.be/"},
+		{link: "http:///www.youtu.be/", want: "www.youtu.be/"},
+		{link: "http://www.youtu.be/", want: "www.youtu.be/"},
+		{link: "http:/www.youtu.be/", want: "www.youtu.be/"},
+	} {
+		if r := remove_http(v.link); r != v.want {
+			t.Error("For", v.link, "expected", v.want, "got", r)
+		}
+	}
+}

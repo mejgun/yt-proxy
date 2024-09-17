@@ -50,7 +50,7 @@ func parseCLIFlags() flagsT {
 
 func main() {
 	stdout := func(s string) { os.Stdout.WriteString(fmt.Sprintf("%s\n", s)) }
-	stderr := func(s string) { os.Stderr.WriteString(fmt.Sprintf("[ ERROR ] %s\n", s)) }
+	stderr := func(s string) { os.Stderr.WriteString(fmt.Sprintf("ERROR   %s\n", s)) }
 	flags := parseCLIFlags()
 	if flags.version {
 		stdout(appVersion)
@@ -142,11 +142,18 @@ func getLink(query string, log logger.T, cache cache.T,
 	return req, res, nil
 }
 
+func remove_http(url string) string {
+	url = strings.TrimPrefix(url, "http:/")
+	url = strings.TrimPrefix(url, "https:/")
+	url = strings.TrimLeft(url, "/")
+	return url
+}
+
 func parseQuery(query string) extractor_config.RequestT {
 	var req extractor_config.RequestT
 	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
 	splitted := strings.Split(query, "?/?")
-	req.URL = splitted[0]
+	req.URL = "https://" + splitted[0]
 	req.HEIGHT = defaultVideoHeight
 	req.FORMAT = defaultVideoFormat
 	if len(splitted) != 2 {
