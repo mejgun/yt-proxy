@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	logger "ytproxy-logger"
+	logger "lib/logger"
 )
 
 const separator = ",,"

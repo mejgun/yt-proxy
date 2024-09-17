@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	extractor "ytproxy-extractor"
+	extractor "lib/extractor"
 )
 
 var testPairs = map[string]extractor.RequestT{

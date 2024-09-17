@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	extractor "ytproxy-extractor"
-	cache "ytproxy-linkscache"
-	logger "ytproxy-logger"
-	streamer "ytproxy-streamer"
+	cache "lib/cache"
+	extractor "lib/extractor"
+	logger "lib/logger"
+	streamer "lib/streamer"
 )
 
 type configT struct {

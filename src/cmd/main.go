@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	config "ytproxy-config"
-	extractor "ytproxy-extractor"
-	cache "ytproxy-linkscache"
-	logger "ytproxy-logger"
-	streamer "ytproxy-streamer"
+	cache "lib/cache"
+	config "lib/config"
+	extractor "lib/extractor"
+	logger "lib/logger"
+	streamer "lib/streamer"
 )
 
 const appVersion = "1.6.0"

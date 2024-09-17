@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	extractor "ytproxy-extractor"
-	logger "ytproxy-logger"
+	extractor "lib/extractor"
+	logger "lib/logger"
 )
 
 type T interface {
