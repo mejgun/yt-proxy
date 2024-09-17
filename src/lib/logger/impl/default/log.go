@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 
 	l "lib/logger/config"
 )
@@ -15,13 +14,30 @@ type loggerT struct {
 	lgr *log.Logger
 }
 
-func (t *loggerT) print(str string, s string, i []interface{}) {
-	t.lgr.Printf(
-		fmt.Sprintf("%-7s %s:", str, s) +
-			fmt.Sprintf(strings.Repeat(" %+v", len(i)), i...))
+func (t *loggerT) print(str string, s string, args []any) {
+	var (
+		fmtstr string
+		arglen = len(args)
+		k      int
+	)
+	add := func(a string) {
+		if len(a) > 0 {
+			fmtstr = fmt.Sprintf("%s %s", fmtstr, a)
+		}
+	}
+	for k < arglen {
+		if k+1 < arglen {
+			add(fmt.Sprintf("%s=%+v", args[k], args[k+1]))
+			k = k + 2
+		} else {
+			add(fmt.Sprintf("%+v", args[k]))
+			k++
+		}
+	}
+	t.lgr.Println(fmt.Sprintf("%s %s.", str, s) + fmtstr)
 }
 
-func (t *loggerT) checkAndPrint(lvl l.LevelT, str string, s string, i ...any) {
+func (t *loggerT) checkAndPrint(lvl l.LevelT, str string, s string, i []any) {
 	if *t.lvl <= lvl {
 		t.print(str, s, i)
 	}

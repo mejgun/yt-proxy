@@ -110,7 +110,7 @@ func main() {
 		Addr: ":" + port,
 	}
 	s.SetKeepAlivesEnabled(true)
-	log.LogInfo("Starting web server", port)
+	log.LogInfo("Starting web server", "port", port, "test")
 	err = s.ListenAndServe()
 	if err != nil {
 		log.LogError("HTTP server start failed: ", err)
