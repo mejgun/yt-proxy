@@ -65,7 +65,7 @@ func main() {
 	conf, err := config.Read(flags.config)
 	checkOrExit(err, "Config", ConfigError)
 
-	log, err := logger.NewDefault(conf.Log)
+	log, err := logger.New(conf.Log)
 	checkOrExit(err, "Logger", LoggerError)
 	log.LogDebug("logger created")
 
@@ -118,7 +118,7 @@ func main() {
 	}
 }
 
-func getLink(query string, log *logger.T, cache cache.T,
+func getLink(query string, log logger.T, cache cache.T,
 	extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
 	now := time.Now()
 	req := parseQuery(query)

@@ -5,13 +5,6 @@ import (
 	"fmt"
 )
 
-type T interface {
-	LogError(string, ...any)
-	LogWarning(string, ...any)
-	LogDebug(string, ...any)
-	LogInfo(string, ...any)
-}
-
 type ConfigT struct {
 	Level    *LevelT  `json:"level"`
 	Output   *OutputT `json:"output"`

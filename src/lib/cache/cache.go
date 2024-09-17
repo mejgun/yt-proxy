@@ -19,7 +19,7 @@ type ConfigT struct {
 	ExpireTime *string `json:"expire-time"`
 }
 
-func New(conf ConfigT, log *logger.T) (T, error) {
+func New(conf ConfigT, log logger.T) (T, error) {
 	defCache := func(t time.Duration) *defaultCache {
 		return &defaultCache{
 			cache:      make(map[extractor.RequestT]extractor.ResultT),

@@ -40,7 +40,7 @@ type defaultExtractor struct {
 	m4a           *template.Template
 	customOptions []*template.Template
 	getUserAgent  string
-	logger        *logger.T
+	logger        logger.T
 }
 
 type RequestT struct {
@@ -49,7 +49,7 @@ type RequestT struct {
 	FORMAT string
 }
 
-func New(c ConfigT, log *logger.T) (T, error) {
+func New(c ConfigT, log logger.T) (T, error) {
 	var (
 		e   defaultExtractor
 		err error

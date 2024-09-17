@@ -7,16 +7,16 @@ import (
 
 	cache "lib/cache"
 	extractor "lib/extractor"
-	logger "lib/logger"
+	logger_config "lib/logger/config"
 	streamer "lib/streamer"
 )
 
 type configT struct {
-	PortInt   uint16            `json:"port"`
-	Streamer  streamer.ConfigT  `json:"streamer"`
-	Extractor extractor.ConfigT `json:"extractor"`
-	Log       logger.ConfigT    `json:"log"`
-	Cache     cache.ConfigT     `json:"cache"`
+	PortInt   uint16                `json:"port"`
+	Streamer  streamer.ConfigT      `json:"streamer"`
+	Extractor extractor.ConfigT     `json:"extractor"`
+	Log       logger_config.ConfigT `json:"log"`
+	Cache     cache.ConfigT         `json:"cache"`
 }
 
 func defaultConfig() configT {
@@ -34,8 +34,8 @@ func defaultConfig() configT {
 		"--dump-user-agent",
 	}
 	co := make([]string, 0)
-	ll := logger.Info
-	lo := logger.Stdout
+	ll := logger_config.Info
+	lo := logger_config.Stdout
 	lf := "log.txt"
 	exp := "3h"
 	return configT{
@@ -58,7 +58,7 @@ func defaultConfig() configT {
 			GetUserAgent:  &e[3],
 			CustomOptions: &co,
 		},
-		Log: logger.ConfigT{
+		Log: logger_config.ConfigT{
 			Level:    &ll,
 			Output:   &lo,
 			FileName: &lf,

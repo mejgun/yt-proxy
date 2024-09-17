@@ -96,7 +96,7 @@ type streamer struct {
 	sendErrorFile        sendErrorFileF
 	setHeaders           func(http.ResponseWriter, *http.Response) error
 	setStreamerUserAgent func(*http.Request) string
-	log                  *logger.T
+	log                  logger.T
 }
 
 type (
@@ -110,7 +110,7 @@ type fileT struct {
 	contentLength int64
 }
 
-func New(conf ConfigT, log *logger.T, xt extractor.T) (T, error) {
+func New(conf ConfigT, log logger.T, xt extractor.T) (T, error) {
 	var (
 		s    streamer
 		err  error
@@ -314,7 +314,7 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 	}
 }
 
-func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log *logger.T) (func(*http.Request) string, error) {
+func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log logger.T) (func(*http.Request) string, error) {
 	switch *conf.SetUserAgent {
 	case Request:
 		log.LogDebug("Streamer User-Agent set to request-set")
