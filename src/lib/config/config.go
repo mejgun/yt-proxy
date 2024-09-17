@@ -6,17 +6,17 @@ import (
 	"strings"
 
 	cache "lib/cache"
-	extractor "lib/extractor"
+	extractor_config "lib/extractor/config"
 	logger_config "lib/logger/config"
 	streamer "lib/streamer"
 )
 
 type configT struct {
-	PortInt   uint16                `json:"port"`
-	Streamer  streamer.ConfigT      `json:"streamer"`
-	Extractor extractor.ConfigT     `json:"extractor"`
-	Log       logger_config.ConfigT `json:"log"`
-	Cache     cache.ConfigT         `json:"cache"`
+	PortInt   uint16                   `json:"port"`
+	Streamer  streamer.ConfigT         `json:"streamer"`
+	Extractor extractor_config.ConfigT `json:"extractor"`
+	Log       logger_config.ConfigT    `json:"log"`
+	Cache     cache.ConfigT            `json:"cache"`
 }
 
 func defaultConfig() configT {
@@ -51,7 +51,7 @@ func defaultConfig() configT {
 			Proxy:                &s[3],
 			MinTlsVersion:        &tv,
 		},
-		Extractor: extractor.ConfigT{
+		Extractor: extractor_config.ConfigT{
 			Path:          &e[0],
 			MP4:           &e[1],
 			M4A:           &e[2],

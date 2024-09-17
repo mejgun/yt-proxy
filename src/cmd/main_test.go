@@ -3,10 +3,10 @@ package main
 import (
 	"testing"
 
-	extractor "lib/extractor"
+	extractor_config "lib/extractor/config"
 )
 
-var testPairs = map[string]extractor.RequestT{
+var testPairs = map[string]extractor_config.RequestT{
 	"/play/youtu.be/jNQXAC9IVRw?/?vh=360&vf=mp4": {
 		URL:    "youtu.be/jNQXAC9IVRw",
 		HEIGHT: "360",

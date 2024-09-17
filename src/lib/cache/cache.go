@@ -6,14 +6,14 @@ import (
 
 	cache_default "lib/cache/impl/default"
 	cache_empty "lib/cache/impl/empty"
-	extractor "lib/extractor"
+	extractor_config "lib/extractor/config"
 	logger "lib/logger"
 )
 
 type T interface {
-	Add(extractor.RequestT, extractor.ResultT, time.Time)
-	Get(extractor.RequestT) (extractor.ResultT, bool)
-	CleanExpired(time.Time) []extractor.ResultT
+	Add(extractor_config.RequestT, extractor_config.ResultT, time.Time)
+	Get(extractor_config.RequestT) (extractor_config.ResultT, bool)
+	CleanExpired(time.Time) []extractor_config.ResultT
 }
 
 type ConfigT struct {

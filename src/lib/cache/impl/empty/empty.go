@@ -1,8 +1,9 @@
 package cache
 
 import (
-	"lib/extractor"
 	"time"
+
+	extractor_config "lib/extractor/config"
 )
 
 func New() *emptyCache {
@@ -11,14 +12,14 @@ func New() *emptyCache {
 
 type emptyCache struct{}
 
-func (t *emptyCache) Add(req extractor.RequestT, res extractor.ResultT,
+func (t *emptyCache) Add(req extractor_config.RequestT, res extractor_config.ResultT,
 	now time.Time) {
 }
 
-func (t *emptyCache) Get(req extractor.RequestT) (extractor.ResultT, bool) {
-	return extractor.ResultT{}, false
+func (t *emptyCache) Get(req extractor_config.RequestT) (extractor_config.ResultT, bool) {
+	return extractor_config.ResultT{}, false
 }
 
-func (t *emptyCache) CleanExpired(now time.Time) []extractor.ResultT {
-	return []extractor.ResultT{}
+func (t *emptyCache) CleanExpired(now time.Time) []extractor_config.ResultT {
+	return []extractor_config.ResultT{}
 }

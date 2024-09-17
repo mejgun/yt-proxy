@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	extractor "lib/extractor"
+	extractor_config "lib/extractor/config"
 	logger "lib/logger"
 )
 
@@ -85,8 +86,8 @@ func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
 }
 
 type T interface {
-	Play(http.ResponseWriter, *http.Request, extractor.RequestT, extractor.ResultT) error
-	PlayError(http.ResponseWriter, extractor.RequestT, error) error
+	Play(http.ResponseWriter, *http.Request, extractor_config.RequestT, extractor_config.ResultT) error
+	PlayError(http.ResponseWriter, extractor_config.RequestT, error) error
 }
 
 type streamer struct {
@@ -146,8 +147,8 @@ func New(conf ConfigT, log logger.T, xt extractor.T) (T, error) {
 func (t *streamer) Play(
 	w http.ResponseWriter,
 	req *http.Request,
-	reqst extractor.RequestT,
-	rest extractor.ResultT,
+	reqst extractor_config.RequestT,
+	rest extractor_config.ResultT,
 ) error {
 	// t.log.LogDebug("Streamer request", rest)
 	// fail := func(str string, err error) {
@@ -181,7 +182,8 @@ func (t *streamer) Play(
 	return nil
 }
 
-func (t *streamer) PlayError(w http.ResponseWriter, req extractor.RequestT, err error) error {
+func (t *streamer) PlayError(w http.ResponseWriter, req extractor_config.RequestT,
+	err error) error {
 	var file *fileT
 	if req.FORMAT == "mp4" {
 		file = &t.errorVideoFile

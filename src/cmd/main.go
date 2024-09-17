@@ -12,6 +12,7 @@ import (
 	cache "lib/cache"
 	config "lib/config"
 	extractor "lib/extractor"
+	extractor_config "lib/extractor/config"
 	logger "lib/logger"
 	streamer "lib/streamer"
 )
@@ -67,19 +68,22 @@ func main() {
 
 	log, err := logger.New(conf.Log)
 	checkOrExit(err, "Logger", LoggerError)
-	log.LogDebug("logger created")
+	status := func(s string) {
+		log.LogDebug("App starting", "status", s)
+	}
+	status("logger created")
 
 	extr, err := extractor.New(conf.Extractor, log)
 	checkOrExit(err, "Extractor", ExtractorError)
-	log.LogDebug("extractor created")
+	status("extractor created")
 
 	cache, err := cache.New(conf.Cache, log)
 	checkOrExit(err, "Cache", CacheError)
-	log.LogDebug("cache created")
+	status("cache created")
 
 	restreamer, err := streamer.New(conf.Streamer, log, extr)
 	checkOrExit(err, "Streamer", StreamerError)
-	log.LogDebug("streamer created")
+	status("streamer created")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
@@ -109,7 +113,6 @@ func main() {
 	s := &http.Server{
 		Addr: ":" + port,
 	}
-	s.SetKeepAlivesEnabled(true)
 	log.LogInfo("Starting web server", "port", port, "test")
 	err = s.ListenAndServe()
 	if err != nil {
@@ -119,7 +122,7 @@ func main() {
 }
 
 func getLink(query string, log logger.T, cache cache.T,
-	extractor extractor.T) (extractor.RequestT, extractor.ResultT, error) {
+	extractor extractor.T) (extractor_config.RequestT, extractor_config.ResultT, error) {
 	now := time.Now()
 	req := parseQuery(query)
 	for _, v := range cache.CleanExpired(now) {
@@ -139,8 +142,8 @@ func getLink(query string, log logger.T, cache cache.T,
 	return req, res, nil
 }
 
-func parseQuery(query string) extractor.RequestT {
-	var req extractor.RequestT
+func parseQuery(query string) extractor_config.RequestT {
+	var req extractor_config.RequestT
 	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
 	splitted := strings.Split(query, "?/?")
 	req.URL = splitted[0]
