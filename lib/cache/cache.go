@@ -13,7 +13,7 @@ import (
 type T interface {
 	Add(extractor_config.RequestT, extractor_config.ResultT, time.Time)
 	Get(extractor_config.RequestT) (extractor_config.ResultT, bool)
-	CleanExpired(time.Time) []extractor_config.ResultT
+	CleanExpired(time.Time) []extractor_config.RequestT
 }
 
 type ConfigT struct {

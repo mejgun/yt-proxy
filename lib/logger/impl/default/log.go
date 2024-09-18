@@ -27,7 +27,7 @@ func (t *loggerT) print(str string, s string, args []any) {
 	}
 	for k < arglen {
 		if k+1 < arglen {
-			add(fmt.Sprintf("%s=%+v", args[k], args[k+1]))
+			add(fmt.Sprintf("%s:%+v", args[k], args[k+1]))
 			k = k + 2
 		} else {
 			add(fmt.Sprintf("%+v", args[k]))

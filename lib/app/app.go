@@ -6,6 +6,7 @@ import (
 	extractor_config "lib/extractor/config"
 	logger "lib/logger"
 	streamer "lib/streamer"
+	"slices"
 
 	"net/http"
 	"net/url"
@@ -27,11 +28,9 @@ type appT struct {
 }
 
 type T struct {
-	log       logger.T
-	cache     cache.T
-	extractor extractor.T
-	streamer  streamer.T
-	list      []appT
+	log        logger.T
+	defaultApp appT
+	appList    []appT
 }
 
 type Option struct {
@@ -49,14 +48,17 @@ func New(
 	s streamer.T,
 	opts []Option) *T {
 	t := T{
-		log:       l,
-		cache:     c,
-		extractor: x,
-		streamer:  s,
+		log: l,
+		defaultApp: appT{
+			name:      "default",
+			cache:     c,
+			extractor: x,
+			streamer:  s,
+		},
 	}
-	t.list = make([]appT, 0)
+	t.appList = make([]appT, 0)
 	for _, v := range opts {
-		t.list = append(t.list, appT{
+		t.appList = append(t.appList, appT{
 			cache:     v.C,
 			extractor: v.X,
 			streamer:  v.S,
@@ -68,60 +70,83 @@ func New(
 	return &t
 }
 
+func (t *T) selectApp(rawURL string) appT {
+	for _, v := range t.appList {
+		if slices.Contains(v.sites, rawURL) {
+			return v
+		}
+	}
+	return t.defaultApp
+}
+
+func parseUrlHost(rawURL string) (string, error) {
+	u, err := url.Parse("https://" + rawURL)
+	return u.Host, err
+}
+
 func (t *T) Run(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	req := parseQuery(r.RequestURI)
-	t.log.LogInfo("Request", req)
-	if res, ok := t.cacheCheck(req, now); ok {
+	resapp := t.selectApp(req.URL)
+	t.log.LogInfo("Request", req, "app", resapp.name)
+	if res, ok, expired := resapp.cacheCheck(req, now); ok {
+		if len(expired) > 0 {
+			t.log.LogDebug("Expired links", expired)
+		}
 		t.log.LogDebug("Link already cached", res)
-		t.play(w, r, req, res)
+		resapp.play(w, r, req, res, t.log)
 	} else {
-		res, err := t.extractor.Extract(req)
+		if len(expired) > 0 {
+			t.log.LogDebug("Expired links", expired)
+		}
+		res, err := resapp.extractor.Extract(req)
 		if err != nil {
 			t.log.LogError("URL extract error", err)
-			t.playError(w, req, err)
+			resapp.playError(w, req, err, t.log)
 		}
 		t.log.LogDebug("Extractor returned", res)
-		t.cacheAdd(req, res, now)
-		t.play(w, r, req, res)
+		resapp.cacheAdd(req, res, now, t.log)
+		resapp.play(w, r, req, res, t.log)
 	}
 }
 
-func (t *T) play(
+func (t *appT) play(
 	w http.ResponseWriter,
 	r *http.Request,
 	req extractor_config.RequestT,
 	res extractor_config.ResultT,
+	logger logger.T,
 ) {
 	if err := t.streamer.Play(w, r, req, res); err != nil {
-		t.log.LogError("Restream error", err)
-		t.playError(w, req, err)
+		logger.LogError("Restream error", err)
+		t.playError(w, req, err, logger)
 	}
 }
 
-func (t *T) playError(
+func (t *appT) playError(
 	w http.ResponseWriter,
 	req extractor_config.RequestT,
 	err error,
+	logger logger.T,
 ) {
 	if err := t.streamer.PlayError(w, req, err); err != nil {
-		t.log.LogError("Error occured while playing error video", err)
+		logger.LogError("Error occured while playing error video", err)
 	}
 }
 
-func (t *T) cacheCheck(req extractor_config.RequestT, now time.Time) (extractor_config.ResultT, bool) {
-	for _, v := range t.cache.CleanExpired(now) {
-		t.log.LogDebug("Clean expired cache", v)
-	}
-	return t.cache.Get(req)
+func (t *appT) cacheCheck(req extractor_config.RequestT, now time.Time) (extractor_config.ResultT, bool, []extractor_config.RequestT) {
+	expired := t.cache.CleanExpired(now)
+	res, ok := t.cache.Get(req)
+	return res, ok, expired
 }
 
-func (t *T) cacheAdd(
+func (t *appT) cacheAdd(
 	req extractor_config.RequestT,
 	res extractor_config.ResultT,
 	now time.Time,
+	logger logger.T,
 ) {
-	t.log.LogDebug("Cache add", res)
+	logger.LogDebug("Cache add", res)
 	t.cache.Add(req, res, now)
 }
 

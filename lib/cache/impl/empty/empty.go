@@ -20,6 +20,6 @@ func (t *emptyCache) Get(req extractor_config.RequestT) (extractor_config.Result
 	return extractor_config.ResultT{}, false
 }
 
-func (t *emptyCache) CleanExpired(now time.Time) []extractor_config.ResultT {
-	return []extractor_config.ResultT{}
+func (t *emptyCache) CleanExpired(now time.Time) []extractor_config.RequestT {
+	return []extractor_config.RequestT{}
 }

@@ -35,13 +35,13 @@ func (t *defaultCache) Get(req extractor_config.RequestT) (extractor_config.Resu
 	return v, ok
 }
 
-func (t *defaultCache) CleanExpired(now time.Time) []extractor_config.ResultT {
-	deleted := make([]extractor_config.ResultT, 0)
+func (t *defaultCache) CleanExpired(now time.Time) []extractor_config.RequestT {
+	deleted := make([]extractor_config.RequestT, 0)
 	t.Lock()
 	for k, v := range t.cache {
 		if v.Expire.Before(now) {
 			delete(t.cache, k)
-			deleted = append(deleted, v)
+			deleted = append(deleted, k)
 		}
 	}
 	t.Unlock()
