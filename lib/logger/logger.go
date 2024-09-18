@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	config "lib/logger/config"
 	logger_default "lib/logger/impl/default"
 	logger_empty "lib/logger/impl/empty"
@@ -23,4 +24,33 @@ type T interface {
 	LogWarning(string, ...any)
 	LogDebug(string, ...any)
 	LogInfo(string, ...any)
+}
+
+type loggerLayer struct {
+	impl        T
+	logger_name string
+}
+
+func NewLayer(impl T, name_str string) T {
+	return &loggerLayer{
+		impl:        impl,
+		logger_name: name_str,
+	}
+}
+
+func (t *loggerLayer) f(s string) string {
+	return fmt.Sprintf("%s. %s", t.logger_name, s)
+}
+
+func (t *loggerLayer) LogError(s string, i ...any) {
+	t.impl.LogError(t.f(s), i)
+}
+func (t *loggerLayer) LogWarning(s string, i ...any) {
+	t.impl.LogWarning(t.f(s), i)
+}
+func (t *loggerLayer) LogDebug(s string, i ...any) {
+	t.impl.LogDebug(t.f(s), i)
+}
+func (t *loggerLayer) LogInfo(s string, i ...any) {
+	t.impl.LogInfo(t.f(s), i)
 }

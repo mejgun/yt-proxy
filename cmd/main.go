@@ -64,15 +64,15 @@ func main() {
 	}
 	status("logger created")
 
-	extr, err := extractor.New(conf.Extractor, log)
+	extr, err := extractor.New(conf.Extractor, logger.NewLayer(log, "Extractor"))
 	checkOrExit(err, "Extractor", ExtractorError)
 	status("extractor created")
 
-	cache_, err := cache.New(conf.Cache, log)
+	cache_, err := cache.New(conf.Cache, logger.NewLayer(log, "Cache"))
 	checkOrExit(err, "Cache", CacheError)
 	status("cache created")
 
-	restreamer, err := streamer.New(conf.Streamer, log, extr)
+	restreamer, err := streamer.New(conf.Streamer, logger.NewLayer(log, "Streamer"), extr)
 	checkOrExit(err, "Streamer", StreamerError)
 	status("streamer created")
 

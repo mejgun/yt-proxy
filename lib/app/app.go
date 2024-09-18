@@ -85,24 +85,26 @@ func parseUrlHost(rawURL string) (string, error) {
 }
 
 func (t *T) Run(w http.ResponseWriter, r *http.Request) {
+	printExpired := func(links []extractor_config.RequestT) {
+		if len(links) > 0 {
+			t.log.LogDebug("Expired links", links)
+		}
+	}
 	now := time.Now()
 	req := parseQuery(r.RequestURI)
 	resapp := t.selectApp(req.URL)
 	t.log.LogInfo("Request", req, "app", resapp.name)
 	if res, ok, expired := resapp.cacheCheck(req, now); ok {
-		if len(expired) > 0 {
-			t.log.LogDebug("Expired links", expired)
-		}
+		printExpired(expired)
 		t.log.LogDebug("Link already cached", res)
 		resapp.play(w, r, req, res, t.log)
 	} else {
-		if len(expired) > 0 {
-			t.log.LogDebug("Expired links", expired)
-		}
+		printExpired(expired)
 		res, err := resapp.extractor.Extract(req)
 		if err != nil {
 			t.log.LogError("URL extract error", err)
 			resapp.playError(w, req, err, t.log)
+			return
 		}
 		t.log.LogDebug("Extractor returned", res)
 		resapp.cacheAdd(req, res, now, t.log)
