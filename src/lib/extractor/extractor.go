@@ -17,6 +17,35 @@ type T interface {
 }
 
 func New(c extractor_config.ConfigT, log logger.T) (T, error) {
+	var (
+		ext layer
+		err error
+	)
+	ext.force_http = *c.ForceHttp
+	if ext.force_http {
+		log.LogDebug("extractor", "force-http", true)
+	}
+	ext.impl, err = real_new(c, log)
+	return &ext, err
+}
+
+type layer struct {
+	impl       T
+	force_http bool
+}
+
+func (t *layer) Extract(req extractor_config.RequestT) (extractor_config.ResultT, error) {
+	if t.force_http {
+		req.URL = "https://" + req.URL
+	}
+	return t.impl.Extract(req)
+}
+
+func (t *layer) GetUserAgent() (string, error) {
+	return t.impl.GetUserAgent()
+}
+
+func real_new(c extractor_config.ConfigT, log logger.T) (T, error) {
 	switch *c.Path {
 	case "direct":
 		return extractor_direct.New()

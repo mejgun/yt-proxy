@@ -21,6 +21,7 @@ type configT struct {
 
 func defaultConfig() configT {
 	fls := false
+	tru := true
 	ext := streamer.Extractor
 	tv := streamer.TlsVersion(0)
 	var s = [4]string{"corrupted.mp4",
@@ -57,6 +58,7 @@ func defaultConfig() configT {
 			M4A:           &e[2],
 			GetUserAgent:  &e[3],
 			CustomOptions: &co,
+			ForceHttp:     &tru,
 		},
 		Log: logger_config.ConfigT{
 			Level:    &ll,
@@ -119,6 +121,9 @@ func appendConfig(src configT, dst configT) configT {
 	}
 	if dst.Extractor.CustomOptions == nil {
 		dst.Extractor.CustomOptions = src.Extractor.CustomOptions
+	}
+	if dst.Extractor.ForceHttp == nil {
+		dst.Extractor.ForceHttp = src.Extractor.ForceHttp
 	}
 	// logger
 	if dst.Log.Level == nil {

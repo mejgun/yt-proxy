@@ -153,7 +153,7 @@ func parseQuery(query string) extractor_config.RequestT {
 	var req extractor_config.RequestT
 	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
 	splitted := strings.Split(query, "?/?")
-	req.URL = "https://" + splitted[0]
+	req.URL = splitted[0]
 	req.HEIGHT = defaultVideoHeight
 	req.FORMAT = defaultVideoFormat
 	if len(splitted) != 2 {
