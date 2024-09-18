@@ -49,7 +49,7 @@ func main() {
 	}
 	checkOrExit := func(err error, name string, errorcode int) {
 		if err != nil {
-			stderr(fmt.Sprintf("%s create error.", name))
+			stderr(fmt.Sprintf("%s error.", name))
 			stderr(err.Error())
 			os.Exit(errorcode)
 		}
@@ -68,7 +68,7 @@ func main() {
 	checkOrExit(err, "Extractor", ExtractorError)
 	status("extractor created")
 
-	cache, err := cache.New(conf.Cache, log)
+	cache_, err := cache.New(conf.Cache, log)
 	checkOrExit(err, "Cache", CacheError)
 	status("cache created")
 
@@ -76,7 +76,27 @@ func main() {
 	checkOrExit(err, "Streamer", StreamerError)
 	status("streamer created")
 
-	app := app.New(log, cache, extr, restreamer)
+	opts := make([]app.Option, 0)
+	for _, v := range conf.SubConfig {
+		subcheck := func(err error, name string, errorcode int) {
+			checkOrExit(err, v.Name+" "+name, errorcode)
+		}
+		xtr, err := extractor.New(v.Extractor, log)
+		subcheck(err, "Extractor", ExtractorError)
+		cch, err := cache.New(v.Cache, log)
+		subcheck(err, "Cache", CacheError)
+		strm, err := streamer.New(v.Streamer, log, extr)
+		subcheck(err, "Streamer", StreamerError)
+		opts = append(opts, app.Option{
+			Name:  v.Name,
+			Sites: v.Sites,
+			X:     xtr,
+			S:     strm,
+			C:     cch,
+		})
+
+	}
+	app := app.New(log, cache_, extr, restreamer, opts)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)

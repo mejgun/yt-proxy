@@ -18,24 +18,54 @@ const (
 	defaultVideoFormat = "mp4"
 )
 
+type appT struct {
+	cache     cache.T
+	extractor extractor.T
+	streamer  streamer.T
+	name      string
+	sites     []string
+}
+
 type T struct {
 	log       logger.T
 	cache     cache.T
 	extractor extractor.T
 	streamer  streamer.T
+	list      []appT
+}
+
+type Option struct {
+	Name  string
+	Sites []string
+	X     extractor.T
+	S     streamer.T
+	C     cache.T
 }
 
 func New(
 	l logger.T,
 	c cache.T,
 	x extractor.T,
-	s streamer.T) *T {
-	return &T{
+	s streamer.T,
+	opts []Option) *T {
+	t := T{
 		log:       l,
 		cache:     c,
 		extractor: x,
 		streamer:  s,
 	}
+	t.list = make([]appT, 0)
+	for _, v := range opts {
+		t.list = append(t.list, appT{
+			cache:     v.C,
+			extractor: v.X,
+			streamer:  v.S,
+			name:      v.Name,
+			sites:     v.Sites,
+		})
+	}
+	t.log.LogDebug("t=", "y", t)
+	return &t
 }
 
 func (t *T) Run(w http.ResponseWriter, r *http.Request) {

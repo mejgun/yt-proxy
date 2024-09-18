@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - json format logs
 - disabling logs
 - force https links to extractor options
+- host setting in config
 - stripping (bad) http(s) prefix in url
 
 ## 1.6.0 - 2024-09-13

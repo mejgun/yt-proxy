@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -18,6 +19,13 @@ type configT struct {
 	Extractor extractor_config.ConfigT `json:"extractor"`
 	Log       logger_config.ConfigT    `json:"log"`
 	Cache     cache.ConfigT            `json:"cache"`
+	SubConfig []subConfigT             `json:"sub-config"`
+}
+
+type subConfigT struct {
+	Name  string   `json:"name"`
+	Sites []string `json:"sites"`
+	configT
 }
 
 func defaultConfig() configT {
@@ -170,5 +178,18 @@ func Read(path string) (configT, error) {
 
 	}()
 	err = json.Unmarshal(b, &c)
-	return appendConfig(defaultConfig(), c), err
+	if err != nil {
+		return c, err
+	}
+	c = appendConfig(defaultConfig(), c)
+	for k, v := range c.SubConfig {
+		if v.Name == "" {
+			return c, fmt.Errorf("sub-config name empty")
+		}
+		if len(v.Sites) == 0 {
+			return c, fmt.Errorf("sub-config sites empty")
+		}
+		c.SubConfig[k].configT = appendConfig(c, v.configT)
+	}
+	return c, nil
 }
