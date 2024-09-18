@@ -89,11 +89,10 @@ func main() {
 		app.Run(w, r)
 		log.LogInfo("Player disconnected", r.RemoteAddr)
 	})
-	port := fmt.Sprintf("%d", conf.PortInt)
 	s := &http.Server{
-		Addr: ":" + port,
+		Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt),
 	}
-	log.LogInfo("Starting web server", "port", port, "test")
+	log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
 	err = s.ListenAndServe()
 	if err != nil {
 		log.LogError("HTTP server start failed: ", err)

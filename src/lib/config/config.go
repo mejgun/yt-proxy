@@ -13,6 +13,7 @@ import (
 
 type configT struct {
 	PortInt   uint16                   `json:"port"`
+	Host      string                   `json:"host"`
 	Streamer  streamer.ConfigT         `json:"streamer"`
 	Extractor extractor_config.ConfigT `json:"extractor"`
 	Log       logger_config.ConfigT    `json:"log"`
@@ -41,6 +42,7 @@ func defaultConfig() configT {
 	exp := "3h"
 	return configT{
 		PortInt: 8080,
+		Host:    "0.0.0.0",
 		Streamer: streamer.ConfigT{
 			EnableErrorHeaders:   &fls,
 			IgnoreMissingHeaders: &fls,
@@ -77,6 +79,9 @@ func appendConfig(src configT, dst configT) configT {
 	// general options
 	if dst.PortInt == 0 {
 		dst.PortInt = src.PortInt
+	}
+	if dst.Host == "" {
+		dst.Host = src.Host
 	}
 	// streamer
 	if dst.Streamer.EnableErrorHeaders == nil {
