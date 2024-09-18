@@ -4,26 +4,17 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
-	"time"
 
+	app "lib/app"
 	cache "lib/cache"
 	config "lib/config"
 	extractor "lib/extractor"
-	extractor_config "lib/extractor/config"
 	logger "lib/logger"
 	streamer "lib/streamer"
 )
 
-const appVersion = "1.6.0"
-
-const (
-	defaultVideoHeight = "720"
-	defaultVideoFormat = "mp4"
-	defaultExpireTime  = 3 * 60 * 60
-)
+const appVersion = "2.0.0"
 
 type flagsT struct {
 	version bool
@@ -85,6 +76,8 @@ func main() {
 	checkOrExit(err, "Streamer", StreamerError)
 	status("streamer created")
 
+	app := app.New(log, cache, extr, restreamer)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
 		log.LogDebug("Bad request", r)
@@ -93,20 +86,7 @@ func main() {
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Play request", r.RemoteAddr, r.RequestURI)
 		log.LogDebug("User request", r)
-		req, res, err := getLink(r.RequestURI, log, cache, extr)
-		if err != nil {
-			log.LogError("URL extract error", err)
-			restreamer.PlayError(w, req, err)
-			log.LogInfo("URL extract failed. Disconnecting", r.RemoteAddr)
-			return
-		}
-		err = restreamer.Play(w, r, req, res)
-		if err != nil {
-			log.LogError("Restream error", err)
-			restreamer.PlayError(w, req, err)
-			log.LogInfo("URL Restream failed. Disconnecting", r.RemoteAddr)
-			return
-		}
+		app.Run(w, r)
 		log.LogInfo("Player disconnected", r.RemoteAddr)
 	})
 	port := fmt.Sprintf("%d", conf.PortInt)
@@ -119,58 +99,4 @@ func main() {
 		log.LogError("HTTP server start failed: ", err)
 		os.Exit(WebServerError)
 	}
-}
-
-func getLink(query string, log logger.T, cache cache.T,
-	extractor extractor.T) (extractor_config.RequestT, extractor_config.ResultT, error) {
-	now := time.Now()
-	req := parseQuery(query)
-	for _, v := range cache.CleanExpired(now) {
-		log.LogDebug("Clean expired cache", v)
-	}
-	log.LogInfo("Request", req)
-	if lnk, ok := cache.Get(req); ok {
-		return req, lnk, nil
-	}
-	res, err := extractor.Extract(req)
-	log.LogDebug("Not cached. Extractor returned", res)
-	if err != nil {
-		return req, res, err
-	}
-	cache.Add(req, res, now)
-	log.LogDebug("Cache add", res)
-	return req, res, nil
-}
-
-func remove_http(url string) string {
-	url = strings.TrimPrefix(url, "http:/")
-	url = strings.TrimPrefix(url, "https:/")
-	url = strings.TrimLeft(url, "/")
-	return url
-}
-
-func parseQuery(query string) extractor_config.RequestT {
-	var req extractor_config.RequestT
-	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
-	splitted := strings.Split(query, "?/?")
-	req.URL = splitted[0]
-	req.HEIGHT = defaultVideoHeight
-	req.FORMAT = defaultVideoFormat
-	if len(splitted) != 2 {
-		return req
-	}
-	tOpts, tErr := url.ParseQuery(splitted[1])
-	if tErr == nil {
-		if tvh, ok := tOpts["vh"]; ok {
-			if tvh[0] == "360" || tvh[0] == "480" || tvh[0] == "720" {
-				req.HEIGHT = tvh[0]
-			}
-		}
-		if tvf, ok := tOpts["vf"]; ok {
-			if tvf[0] == "mp4" || tvf[0] == "m4a" {
-				req.FORMAT = tvf[0]
-			}
-		}
-	}
-	return req
 }
