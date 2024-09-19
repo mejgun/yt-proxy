@@ -7,6 +7,7 @@ import (
 	logger "lib/logger"
 	streamer "lib/streamer"
 	"slices"
+	"sync"
 
 	"net/http"
 	"net/url"
@@ -29,6 +30,7 @@ type appT struct {
 }
 
 type T struct {
+	mu         sync.RWMutex
 	log        logger.T
 	defaultApp appT
 	appList    []appT
@@ -48,6 +50,7 @@ func New(
 	def Option,
 	opts []Option) *T {
 	t := T{
+		log: log,
 		defaultApp: appT{
 			log:       def.L,
 			name:      "default",
@@ -88,6 +91,8 @@ func parseUrlHost(rawURL string) (string, error) {
 }
 
 func (t *T) Run(w http.ResponseWriter, r *http.Request) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	printExpired := func(links []extractor_config.RequestT) {
 		if len(links) > 0 {
 			t.log.LogDebug("Expired links", links)
