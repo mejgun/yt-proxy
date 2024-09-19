@@ -319,19 +319,19 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log logger.T) (func(*http.Request) string, error) {
 	switch *conf.SetUserAgent {
 	case Request:
-		log.LogDebug("Streamer User-Agent set to request-set")
+		log.LogDebug("", "User-Agent", "request-set")
 		return func(r *http.Request) string {
 			return r.UserAgent()
 		}, nil
 	case Extractor:
 		ua, err := xt.GetUserAgent()
-		log.LogDebug("Streamer User-Agent set to", ua)
+		log.LogDebug("", "User-Agent", ua)
 		return func(r *http.Request) string {
 			return ua
 		}, err
 	case Config:
 		ua := conf.UserAgent
-		log.LogDebug("Streamer User-Agent set to", ua)
+		log.LogDebug("", "User-Agent", ua)
 		return func(r *http.Request) string {
 			return *ua
 		}, nil

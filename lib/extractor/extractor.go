@@ -23,7 +23,7 @@ func New(c extractor_config.ConfigT, log logger.T) (T, error) {
 	)
 	ext.force_http = *c.ForceHttp
 	if ext.force_http {
-		log.LogDebug("extractor", "force-http", true)
+		log.LogDebug("", "force-http", true)
 	}
 	ext.impl, err = real_new(c, log)
 	return &ext, err

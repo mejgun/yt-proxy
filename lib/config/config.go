@@ -12,23 +12,23 @@ import (
 	streamer "lib/streamer"
 )
 
-type configT struct {
+type ConfigT struct {
 	PortInt   uint16                   `json:"port"`
 	Host      string                   `json:"host"`
 	Streamer  streamer.ConfigT         `json:"streamer"`
 	Extractor extractor_config.ConfigT `json:"extractor"`
 	Log       logger_config.ConfigT    `json:"log"`
 	Cache     cache.ConfigT            `json:"cache"`
-	SubConfig []subConfigT             `json:"sub-config"`
+	SubConfig []SubConfigT             `json:"sub-config"`
 }
 
-type subConfigT struct {
+type SubConfigT struct {
 	Name  string   `json:"name"`
 	Sites []string `json:"sites"`
-	configT
+	ConfigT
 }
 
-func defaultConfig() configT {
+func defaultConfig() ConfigT {
 	fls := false
 	tru := true
 	ext := streamer.Extractor
@@ -48,7 +48,7 @@ func defaultConfig() configT {
 	lo := logger_config.Stdout
 	lf := "log.txt"
 	exp := "3h"
-	return configT{
+	return ConfigT{
 		PortInt: 8080,
 		Host:    "0.0.0.0",
 		Streamer: streamer.ConfigT{
@@ -83,7 +83,7 @@ func defaultConfig() configT {
 }
 
 // add second config options to first
-func appendConfig(src configT, dst configT) configT {
+func appendConfig(src ConfigT, dst ConfigT) ConfigT {
 	// general options
 	if dst.PortInt == 0 {
 		dst.PortInt = src.PortInt
@@ -158,8 +158,8 @@ func appendConfig(src configT, dst configT) configT {
 	return dst
 }
 
-func Read(path string) (configT, error) {
-	var c configT
+func Read(path string) (ConfigT, error) {
+	var c ConfigT
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return c, err
@@ -189,7 +189,7 @@ func Read(path string) (configT, error) {
 		if len(v.Sites) == 0 {
 			return c, fmt.Errorf("sub-config sites empty")
 		}
-		c.SubConfig[k].configT = appendConfig(c, v.configT)
+		c.SubConfig[k].ConfigT = appendConfig(c, v.ConfigT)
 	}
 	return c, nil
 }

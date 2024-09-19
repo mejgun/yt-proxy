@@ -26,9 +26,9 @@ func New(conf ConfigT, log logger.T) (T, error) {
 		return cache_default.New(0), err
 	}
 	if t.Seconds() < 1 {
-		log.LogDebug("cache", "disabled by config")
+		log.LogDebug("", "disabled by config")
 		return cache_empty.New(), nil
 	}
-	log.LogDebug("cache", fmt.Sprintf("expire time set to %s", t))
+	log.LogDebug("", fmt.Sprintf("expire time set to %s", t))
 	return cache_default.New(0), nil
 }

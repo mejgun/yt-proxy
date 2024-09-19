@@ -39,18 +39,23 @@ func NewLayer(impl T, name_str string) T {
 }
 
 func (t *loggerLayer) f(s string) string {
-	return fmt.Sprintf("%s. %s", t.logger_name, s)
+	switch s {
+	case "":
+		return t.logger_name
+	default:
+		return fmt.Sprintf("%s. %s", t.logger_name, s)
+	}
 }
 
 func (t *loggerLayer) LogError(s string, i ...any) {
-	t.impl.LogError(t.f(s), i)
+	t.impl.LogError(t.f(s), i...)
 }
 func (t *loggerLayer) LogWarning(s string, i ...any) {
-	t.impl.LogWarning(t.f(s), i)
+	t.impl.LogWarning(t.f(s), i...)
 }
 func (t *loggerLayer) LogDebug(s string, i ...any) {
-	t.impl.LogDebug(t.f(s), i)
+	t.impl.LogDebug(t.f(s), i...)
 }
 func (t *loggerLayer) LogInfo(s string, i ...any) {
-	t.impl.LogInfo(t.f(s), i)
+	t.impl.LogInfo(t.f(s), i...)
 }

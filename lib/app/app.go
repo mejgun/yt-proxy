@@ -25,6 +25,7 @@ type appT struct {
 	streamer  streamer.T
 	name      string
 	sites     []string
+	log       logger.T
 }
 
 type T struct {
@@ -39,21 +40,20 @@ type Option struct {
 	X     extractor.T
 	S     streamer.T
 	C     cache.T
+	L     logger.T
 }
 
 func New(
-	l logger.T,
-	c cache.T,
-	x extractor.T,
-	s streamer.T,
+	log logger.T,
+	def Option,
 	opts []Option) *T {
 	t := T{
-		log: l,
 		defaultApp: appT{
+			log:       def.L,
 			name:      "default",
-			cache:     c,
-			extractor: x,
-			streamer:  s,
+			cache:     def.C,
+			extractor: def.X,
+			streamer:  def.S,
 		},
 	}
 	t.appList = make([]appT, 0)
@@ -64,16 +64,19 @@ func New(
 			streamer:  v.S,
 			name:      v.Name,
 			sites:     v.Sites,
+			log:       v.L,
 		})
 	}
-	t.log.LogDebug("t=", "y", t)
 	return &t
 }
 
 func (t *T) selectApp(rawURL string) appT {
-	for _, v := range t.appList {
-		if slices.Contains(v.sites, rawURL) {
-			return v
+	host, err := parseUrlHost(rawURL)
+	if err == nil {
+		for _, v := range t.appList {
+			if slices.Contains(v.sites, host) {
+				return v
+			}
 		}
 	}
 	return t.defaultApp

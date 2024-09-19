@@ -34,69 +34,61 @@ const (
 func parseCLIFlags() flagsT {
 	var f flagsT
 	flag.BoolVar(&f.version, "version", false, "prints current yt-proxy version")
-	flag.StringVar(&f.config, "config", "config.json", "config file path")
+	flag.StringVar(&f.config, "config", "config.jsonc", "config file path")
 	flag.Parse()
 	return f
 }
 
 func main() {
-	stdout := func(s string) { os.Stdout.WriteString(fmt.Sprintf("%s\n", s)) }
-	stderr := func(s string) { os.Stderr.WriteString(fmt.Sprintf("ERROR   %s\n", s)) }
 	flags := parseCLIFlags()
 	if flags.version {
 		stdout(appVersion)
 		os.Exit(NoError)
 	}
-	checkOrExit := func(err error, name string, errorcode int) {
-		if err != nil {
-			stderr(fmt.Sprintf("%s error.", name))
-			stderr(err.Error())
-			os.Exit(errorcode)
-		}
+	startApp(flags.config)
+}
+
+var stdout = func(s string) { os.Stdout.WriteString(fmt.Sprintf("%s\n", s)) }
+var stderr = func(s string) { os.Stderr.WriteString(fmt.Sprintf("ERROR   %s\n", s)) }
+var checkOrExit = func(err error, name string, errorcode int) {
+	if err != nil {
+		stderr(fmt.Sprintf("%s error. %s", name, err))
+		os.Exit(errorcode)
 	}
-	conf, err := config.Read(flags.config)
-	checkOrExit(err, "Config", ConfigError)
+}
+var texts = [5]string{
+	"Config",
+	"Logger",
+	"Extractor",
+	"Cache",
+	"Streamer",
+}
+
+func startApp(conf_file string) {
+
+	conf, err := config.Read(conf_file)
+	checkOrExit(err, texts[0], ConfigError)
 
 	log, err := logger.New(conf.Log)
-	checkOrExit(err, "Logger", LoggerError)
-	status := func(s string) {
-		log.LogDebug("App starting", "status", s)
-	}
-	status("logger created")
-
-	extr, err := extractor.New(conf.Extractor, logger.NewLayer(log, "Extractor"))
-	checkOrExit(err, "Extractor", ExtractorError)
-	status("extractor created")
-
-	cache_, err := cache.New(conf.Cache, logger.NewLayer(log, "Cache"))
-	checkOrExit(err, "Cache", CacheError)
-	status("cache created")
-
-	restreamer, err := streamer.New(conf.Streamer, logger.NewLayer(log, "Streamer"), extr)
-	checkOrExit(err, "Streamer", StreamerError)
-	status("streamer created")
+	checkOrExit(err, texts[1], LoggerError)
 
 	opts := make([]app.Option, 0)
 	for _, v := range conf.SubConfig {
-		subcheck := func(err error, name string, errorcode int) {
-			checkOrExit(err, v.Name+" "+name, errorcode)
-		}
-		xtr, err := extractor.New(v.Extractor, log)
-		subcheck(err, "Extractor", ExtractorError)
-		cch, err := cache.New(v.Cache, log)
-		subcheck(err, "Cache", CacheError)
-		strm, err := streamer.New(v.Streamer, log, extr)
-		subcheck(err, "Streamer", StreamerError)
-		opts = append(opts, app.Option{
-			Name:  v.Name,
-			Sites: v.Sites,
-			X:     xtr,
-			S:     strm,
-			C:     cch,
-		})
-
+		opt := getNewApp(log, v)
+		opts = append(opts, opt)
 	}
-	app := app.New(log, cache_, extr, restreamer, opts)
+	defapp := getNewApp(log, config.SubConfigT{
+		ConfigT: config.ConfigT{
+			Streamer:  conf.Streamer,
+			Extractor: conf.Extractor,
+			Cache:     conf.Cache,
+		},
+		Name: "default",
+	})
+	app := app.New(
+		logger.NewLayer(log, "App"),
+		defapp,
+		opts)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
@@ -117,5 +109,28 @@ func main() {
 	if err != nil {
 		log.LogError("HTTP server start failed: ", err)
 		os.Exit(WebServerError)
+	}
+}
+
+func getNewApp(log logger.T, v config.SubConfigT) app.Option {
+	subcheck := func(err error, name string, errorcode int) {
+		checkOrExit(err, v.Name+" "+name, errorcode)
+	}
+	newname := func(name string) string {
+		return fmt.Sprintf("[%s] %s", v.Name, name)
+	}
+	xtr, err := extractor.New(v.Extractor, logger.NewLayer(log, newname(texts[2])))
+	subcheck(err, texts[2], ExtractorError)
+	cch, err := cache.New(v.Cache, logger.NewLayer(log, newname(texts[3])))
+	subcheck(err, texts[3], CacheError)
+	strm, err := streamer.New(v.Streamer, logger.NewLayer(log, newname(texts[4])), xtr)
+	subcheck(err, texts[4], StreamerError)
+	return app.Option{
+		Name:  v.Name,
+		Sites: v.Sites,
+		X:     xtr,
+		S:     strm,
+		C:     cch,
+		L:     logger.NewLayer(log, fmt.Sprintf("[%s] app", v.Name)),
 	}
 }
