@@ -24,6 +24,7 @@ type T interface {
 	LogWarning(string, ...any)
 	LogDebug(string, ...any)
 	LogInfo(string, ...any)
+	Close()
 }
 
 type loggerLayer struct {
@@ -58,4 +59,7 @@ func (t *loggerLayer) LogDebug(s string, i ...any) {
 }
 func (t *loggerLayer) LogInfo(s string, i ...any) {
 	t.impl.LogInfo(t.f(s), i...)
+}
+func (t *loggerLayer) Close() {
+	t.impl.Close()
 }

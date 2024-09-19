@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	app "lib/app"
 	cache "lib/cache"
@@ -103,11 +106,37 @@ func startApp(conf_file string) {
 	s := &http.Server{
 		Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt),
 	}
+	go signalsCatcher(log, app, s)
+
 	log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
-	err = s.ListenAndServe()
-	if err != nil {
-		log.LogError("HTTP server start failed: ", err)
+	if err = s.ListenAndServe(); err == http.ErrServerClosed {
+		log.LogInfo("HTTP server closed")
+		os.Exit(NoError)
+	} else {
+		log.LogError("HTTP server", err)
+		log.Close()
 		os.Exit(WebServerError)
+	}
+}
+
+func signalsCatcher(log logger.T, app *app.T, s *http.Server) {
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	for {
+		switch <-sigint {
+		case syscall.SIGHUP:
+			log.LogWarning("Config reloading")
+		case syscall.SIGINT:
+			fallthrough
+		case syscall.SIGTERM:
+			log.LogWarning("Exiting")
+			app.Shutdown()
+			if err := s.Shutdown(context.Background()); err != nil {
+				// Error from closing listeners, or context timeout:
+				log.LogError("HTTP server Shutdown", err)
+			}
+			return
+		}
 	}
 }
 

@@ -192,3 +192,9 @@ func parseQuery(query string) extractor_config.RequestT {
 	}
 	return req
 }
+
+func (t *T) Shutdown() {
+	t.mu.Lock() // locking app forever
+	t.log.LogInfo("Exiting")
+	t.log.Close()
+}

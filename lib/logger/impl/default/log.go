@@ -5,13 +5,16 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 
 	l "lib/logger/config"
 )
 
 type loggerT struct {
-	lvl *l.LevelT
-	lgr *log.Logger
+	mu      sync.RWMutex
+	lvl     *l.LevelT
+	lgr     *log.Logger
+	outputs []*os.File
 }
 
 func (t *loggerT) print(str string, s string, args []any) {
@@ -44,17 +47,34 @@ func (t *loggerT) checkAndPrint(lvl l.LevelT, str string, s string, i []any) {
 }
 
 func (t *loggerT) LogError(s string, i ...any) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	t.checkAndPrint(l.Error, "ERROR", s, i)
 }
 func (t *loggerT) LogWarning(s string, i ...any) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	t.checkAndPrint(l.Warning, "WARNING", s, i)
 }
 func (t *loggerT) LogDebug(s string, i ...any) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	t.checkAndPrint(l.Debug, "DEBUG", s, i)
 
 }
 func (t *loggerT) LogInfo(s string, i ...any) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	t.checkAndPrint(l.Info, "INFO", s, i)
+}
+
+func (t *loggerT) Close() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, v := range t.outputs {
+		v.Close()
+	}
+	t.lgr = log.Default()
 }
 
 func New(conf l.ConfigT) (*loggerT, error) {
@@ -64,10 +84,11 @@ func New(conf l.ConfigT) (*loggerT, error) {
 	)
 	open := func() (*os.File, error) {
 		return os.OpenFile(
-			// will never close this file :|
-			// should trap exit
-			*conf.FileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664)
+			*conf.FileName,
+			os.O_APPEND|os.O_WRONLY|os.O_CREATE,
+			0664)
 	}
+	logger.outputs = make([]*os.File, 0)
 	switch *conf.Output {
 	case l.Stdout:
 		lgr.SetOutput(os.Stdout)
@@ -76,12 +97,14 @@ func New(conf l.ConfigT) (*loggerT, error) {
 		if err != nil {
 			return &logger, err
 		}
+		logger.outputs = append(logger.outputs, f)
 		lgr.SetOutput(f)
 	case l.Both:
 		f, err := open()
 		if err != nil {
 			return &logger, err
 		}
+		logger.outputs = append(logger.outputs, f)
 		out := io.MultiWriter(os.Stdout, f)
 		lgr.SetOutput(out)
 	}
