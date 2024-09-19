@@ -65,7 +65,6 @@ var texts = [5]string{
 }
 
 func startApp(conf_file string) {
-
 	conf, err := config.Read(conf_file)
 	checkOrExit(err, texts[0], ConfigError)
 
