@@ -20,7 +20,15 @@ func main() {
 	filePrefix := os.Args[1]
 	for os_ := range knownOS {
 		for arch := range knownArch {
-			file := fmt.Sprintf("%s-%s-%s", filePrefix, os_, arch)
+			addExe := func() string {
+				switch os_ {
+				case "windows":
+					return ".exe"
+				default:
+					return ""
+				}
+			}
+			file := fmt.Sprintf("%s-%s-%s%s", filePrefix, os_, arch, addExe())
 			filePath := fmt.Sprintf("../%s/%s", binDir, file)
 			fmt.Printf("%d %-40s ", total, file)
 			cmd := exec.Command(goBin, "build", "-o", filePath, "-ldflags", "-s -w")
