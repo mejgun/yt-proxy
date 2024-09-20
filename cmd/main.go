@@ -26,12 +26,7 @@ type flagsT struct {
 
 const (
 	NoError = iota
-	ConfigError
-	LoggerError
-	ExtractorError
-	StreamerError
-	WebServerError
-	CacheError
+	SomeError
 )
 
 func parseCLIFlags() flagsT {
@@ -45,52 +40,21 @@ func parseCLIFlags() flagsT {
 func main() {
 	flags := parseCLIFlags()
 	if flags.version {
-		stdout(appVersion)
+		os.Stdout.WriteString(fmt.Sprintf("%s\n", appVersion))
 		os.Exit(NoError)
 	}
 	startApp(flags.config)
 }
 
-var stdout = func(s string) { os.Stdout.WriteString(fmt.Sprintf("%s\n", s)) }
-var stderr = func(s string) { os.Stderr.WriteString(fmt.Sprintf("ERROR   %s\n", s)) }
-var checkOrExit = func(err error, name string, errorcode int) {
-	if err != nil {
-		stderr(fmt.Sprintf("%s error. %s", name, err))
-		os.Exit(errorcode)
-	}
-}
-var texts = [5]string{
-	"Config",
-	"Logger",
-	"Extractor",
-	"Cache",
-	"Streamer",
-}
-
 func startApp(conf_file string) {
-	conf, err := config.Read(conf_file)
-	checkOrExit(err, texts[0], ConfigError)
-
-	log, err := logger.New(conf.Log)
-	checkOrExit(err, texts[1], LoggerError)
-
-	opts := make([]app.Option, 0)
-	for _, v := range conf.SubConfig {
-		opt := getNewApp(log, v)
-		opts = append(opts, opt)
+	conf, def, opts, log, err := readConfig(conf_file)
+	if err != nil {
+		os.Stderr.WriteString(fmt.Sprintf("Config read error: %s\n", err))
+		os.Exit(SomeError)
 	}
-	defapp := getNewApp(log, config.SubConfigT{
-		ConfigT: config.ConfigT{
-			Streamer:  conf.Streamer,
-			Extractor: conf.Extractor,
-			Cache:     conf.Cache,
-		},
-		Name: "default",
-	})
 	app := app.New(
 		logger.NewLayer(log, "App"),
-		defapp,
-		opts)
+		def, opts)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
@@ -106,7 +70,7 @@ func startApp(conf_file string) {
 	s := &http.Server{
 		Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt),
 	}
-	go signalsCatcher(log, app, s)
+	go signalsCatcher(conf_file, log, app, s)
 
 	log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
 	if err = s.ListenAndServe(); err == http.ErrServerClosed {
@@ -115,17 +79,59 @@ func startApp(conf_file string) {
 	} else {
 		log.LogError("HTTP server", err)
 		log.Close()
-		os.Exit(WebServerError)
+		os.Exit(SomeError)
 	}
 }
 
-func signalsCatcher(log logger.T, app *app.T, s *http.Server) {
+func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
+	logger.T, error) {
+	conf, err := config.Read(conf_file)
+	if err != nil {
+		return config.ConfigT{}, app.Option{}, nil, nil, err
+	}
+
+	log, err := logger.New(conf.Log)
+	if err != nil {
+		return config.ConfigT{}, app.Option{}, nil, nil, err
+	}
+
+	defapp, err := getNewApp(log, config.SubConfigT{
+		ConfigT: config.ConfigT{
+			Streamer:  conf.Streamer,
+			Extractor: conf.Extractor,
+			Cache:     conf.Cache,
+		},
+		Name: "default",
+	})
+	if err != nil {
+		return config.ConfigT{}, app.Option{}, nil, nil, err
+	}
+
+	opts := make([]app.Option, 0)
+	for _, v := range conf.SubConfig {
+		opt, err := getNewApp(log, v)
+		if err != nil {
+			return config.ConfigT{}, app.Option{}, nil, nil, err
+		}
+		opts = append(opts, opt)
+	}
+	return conf, defapp, opts, log, nil
+}
+
+func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic, s *http.Server) {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 	for {
 		switch <-sigint {
 		case syscall.SIGHUP:
 			log.LogWarning("Config reloading")
+			_, def, opts, lognew, err := readConfig(conf_file)
+			if err != nil {
+				log.LogError("Config reload error", err)
+			} else {
+				app.ReloadConfig(logger.NewLayer(lognew, "App"), def, opts)
+				log = lognew
+			}
 		case syscall.SIGINT:
 			fallthrough
 		case syscall.SIGTERM:
@@ -140,19 +146,34 @@ func signalsCatcher(log logger.T, app *app.T, s *http.Server) {
 	}
 }
 
-func getNewApp(log logger.T, v config.SubConfigT) app.Option {
-	subcheck := func(err error, name string, errorcode int) {
-		checkOrExit(err, v.Name+" "+name, errorcode)
+func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
+	texts := [3]string{
+		"Extractor",
+		"Cache",
+		"Streamer",
 	}
+
 	newname := func(name string) string {
 		return fmt.Sprintf("[%s] %s", v.Name, name)
 	}
-	xtr, err := extractor.New(v.Extractor, logger.NewLayer(log, newname(texts[2])))
-	subcheck(err, texts[2], ExtractorError)
-	cch, err := cache.New(v.Cache, logger.NewLayer(log, newname(texts[3])))
-	subcheck(err, texts[3], CacheError)
-	strm, err := streamer.New(v.Streamer, logger.NewLayer(log, newname(texts[4])), xtr)
-	subcheck(err, texts[4], StreamerError)
+	nameerr := func(name string, err error) error {
+		return fmt.Errorf("%s: %s", newname(name), err)
+	}
+	xtr, err := extractor.New(v.Extractor,
+		logger.NewLayer(log, newname(texts[0])))
+	if err != nil {
+		return app.Option{}, nameerr(texts[0], err)
+	}
+	cch, err := cache.New(v.Cache,
+		logger.NewLayer(log, newname(texts[1])))
+	if err != nil {
+		return app.Option{}, nameerr(texts[1], err)
+	}
+	strm, err := streamer.New(v.Streamer,
+		logger.NewLayer(log, newname(texts[2])), xtr)
+	if err != nil {
+		return app.Option{}, nameerr(texts[2], err)
+	}
 	return app.Option{
 		Name:  v.Name,
 		Sites: v.Sites,
@@ -160,5 +181,5 @@ func getNewApp(log logger.T, v config.SubConfigT) app.Option {
 		S:     strm,
 		C:     cch,
 		L:     logger.NewLayer(log, fmt.Sprintf("[%s] app", v.Name)),
-	}
+	}, nil
 }

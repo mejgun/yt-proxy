@@ -20,7 +20,7 @@ const (
 	defaultVideoFormat = "mp4"
 )
 
-type appT struct {
+type app struct {
 	cache     cache.T
 	extractor extractor.T
 	streamer  streamer.T
@@ -29,11 +29,11 @@ type appT struct {
 	log       logger.T
 }
 
-type T struct {
+type AppLogic struct {
 	mu         sync.RWMutex
 	log        logger.T
-	defaultApp appT
-	appList    []appT
+	defaultApp app
+	appList    []app
 }
 
 type Option struct {
@@ -45,23 +45,25 @@ type Option struct {
 	L     logger.T
 }
 
-func New(
-	log logger.T,
-	def Option,
-	opts []Option) *T {
-	t := T{
-		log: log,
-		defaultApp: appT{
-			log:       def.L,
-			name:      "default",
-			cache:     def.C,
-			extractor: def.X,
-			streamer:  def.S,
-		},
+func New(log logger.T, def Option, opts []Option) *AppLogic {
+	var t AppLogic
+	t.set(log, def, opts)
+	return &t
+}
+
+func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
+	t.log = log
+	t.defaultApp = app{
+		log:       def.L,
+		name:      "default",
+		cache:     def.C,
+		extractor: def.X,
+		streamer:  def.S,
 	}
-	t.appList = make([]appT, 0)
+
+	t.appList = make([]app, 0)
 	for _, v := range opts {
-		t.appList = append(t.appList, appT{
+		t.appList = append(t.appList, app{
 			cache:     v.C,
 			extractor: v.X,
 			streamer:  v.S,
@@ -70,10 +72,9 @@ func New(
 			log:       v.L,
 		})
 	}
-	return &t
 }
 
-func (t *T) selectApp(rawURL string) appT {
+func (t *AppLogic) selectApp(rawURL string) app {
 	host, err := parseUrlHost(rawURL)
 	if err == nil {
 		for _, v := range t.appList {
@@ -90,7 +91,7 @@ func parseUrlHost(rawURL string) (string, error) {
 	return u.Host, err
 }
 
-func (t *T) Run(w http.ResponseWriter, r *http.Request) {
+func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	printExpired := func(links []extractor_config.RequestT) {
@@ -120,7 +121,7 @@ func (t *T) Run(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (t *appT) play(
+func (t *app) play(
 	w http.ResponseWriter,
 	r *http.Request,
 	req extractor_config.RequestT,
@@ -133,7 +134,7 @@ func (t *appT) play(
 	}
 }
 
-func (t *appT) playError(
+func (t *app) playError(
 	w http.ResponseWriter,
 	req extractor_config.RequestT,
 	err error,
@@ -144,13 +145,13 @@ func (t *appT) playError(
 	}
 }
 
-func (t *appT) cacheCheck(req extractor_config.RequestT, now time.Time) (extractor_config.ResultT, bool, []extractor_config.RequestT) {
+func (t *app) cacheCheck(req extractor_config.RequestT, now time.Time) (extractor_config.ResultT, bool, []extractor_config.RequestT) {
 	expired := t.cache.CleanExpired(now)
 	res, ok := t.cache.Get(req)
 	return res, ok, expired
 }
 
-func (t *appT) cacheAdd(
+func (t *app) cacheAdd(
 	req extractor_config.RequestT,
 	res extractor_config.ResultT,
 	now time.Time,
@@ -193,8 +194,18 @@ func parseQuery(query string) extractor_config.RequestT {
 	return req
 }
 
-func (t *T) Shutdown() {
+func (t *AppLogic) Shutdown() {
 	t.mu.Lock() // locking app forever
 	t.log.LogInfo("Exiting")
 	t.log.Close()
+}
+
+func (t *AppLogic) ReloadConfig(log logger.T, def Option, opts []Option) {
+	t.log.LogDebug("Waiting for clients disconnect to reload app")
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.log.LogInfo("Reloading app")
+	t.log.Close()
+	t.set(log, def, opts)
+	t.log.LogInfo("Reloading complete")
 }
