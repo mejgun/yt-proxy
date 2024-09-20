@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	binDir     = "bin"
-	filePrefix = "yt-proxy"
-	goBin      = "go"
-	myos       = "linux"
-	myarch     = "amd64"
+	binDir = "bin"
+	goBin  = "go"
+	myos   = "linux"
+	myarch = "amd64"
 )
 
 func main() {
 	total := len(knownArch) * len(knownOS)
+	filePrefix := os.Args[1]
 	for os_ := range knownOS {
 		for arch := range knownArch {
 			file := fmt.Sprintf("%s-%s-%s", filePrefix, os_, arch)

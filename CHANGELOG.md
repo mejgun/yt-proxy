@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2.0.0 - 2024-09-20
+app refactored & reworked
+### Added
+- per site settings
+- direct/no extractor (returning same url)
+- json format logs
+- disabling logs
+- force https links to extractor options
+- host setting in config
+- stripping (bad) http(s) prefix in url
+- os signals catching
+- config reload (SIGHUP)
+### Changed
+- default config name from "config.json" to "config.jsonc"
+
 ## 1.6.0 - 2024-09-13
 ### Added           
 - ignoring comment strings in config file

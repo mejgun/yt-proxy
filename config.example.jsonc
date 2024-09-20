@@ -1,0 +1,148 @@
+// example config for the app.
+// only full string comments are supported,
+// do not use /* comment */ and comment after keys.
+// delete string to set key to the DEFAULT value.
+{
+    // web server listen host.
+    // DEFAULT "0.0.0.0"
+    "host": "127.0.0.1",
+    // web server listen port.
+    // DEFAULT 8080
+    "port": 8080,
+    // logger config
+    "log": {
+        // log level
+        // debug/info/warning/error/nothing
+        // DEFAULT "info"
+        "level": "info",
+        // log destination
+        // stdout/file/both
+        // DEFAULT "stdout"
+        "output": "stdout",
+        // filename if writing to file
+        // DEFAULT "log.txt"
+        "filename": "log.txt",
+        // set output to json format
+        // DEFAULT false
+        "json": false
+    },
+    // default restreamer config.
+    // restreamer takes https stream and restream it as http.
+    "streamer": {
+        // show errors in headers (insecure).
+        // streaming errors will be sent as Error-Header-xx header.
+        // DEFAULT false
+        "error-headers": false,
+        // do not strictly check video headers.
+        // if true, streamer will ignore incorrect "Content-Length" and "Content-Type" header.
+        // DEFAULT false
+        "ignore-missing-headers": false,
+        // do not check video server certificate (insecure)
+        // DEFAULT false
+        "ignore-ssl-errors": false,
+        // video file that will be shown on video stream errors
+        // DEFAULT "corrupted.mp4"
+        "error-video": "corrupted.mp4",
+        // audio file that will be played on audio stream errors
+        // dwnlded here youtu.be/_b8KPiT1PxI (suggest your options)
+        // DEFAULT "failed.m4a"
+        "error-audio": "failed.m4a",
+        // how to set streamer's user-agent
+        // request - set from user's request (old default)
+        // extractor - set from extractor on app start (default)
+        // config - set from config
+        // DEFAULT "extractor"
+        "set-user-agent": "extractor",
+        // custom user agent used if "set-user-agent" set to "config"
+        // DEFAULT "Mozilla"
+        "user-agent": "Mozilla",
+        // proxy for restreamer
+        // empty - no proxy
+        // "env" - read proxy from environment variables (e.g. HTTP_PROXY="http://127.0.0.1:3128")
+        // proxy url - e.g. "socks5://127.0.0.1:9999"
+        // DEFAULT "env"
+        "proxy": "env",
+        // min TLS version:  "TLS 1.3", "TLS 1.2", etc.
+        // DEFAULT "TLS 1.2"
+        "min-tls-version": "TLS 1.2"
+    },
+    // default media extractor config
+    "extractor": {
+        // file path
+        // "direct" - do not use extractor, just pass url to streamer
+        // DEFAULT "yt-dlp"
+        "path": "yt-dlp",
+        // arguments for extractor
+        // args separator is ",,", not space
+        // {{.HEIGHT}} will be replaced with requested height (360/480/720)
+        // {{.URL}} will be replace with requested url
+        // also you can use {{.FORMAT}} - requested format (now - only mp4 or m4a)
+        // DEFAULT "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
+        "mp4": "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
+        // same for m4a
+        // DEFAULT "-f,,(m4a),,-g,,{{.URL}}",
+        "m4a": "-f,,(m4a),,-g,,{{.URL}}",
+        // args for getting user-agent
+        // DEFAULT "--dump-user-agent"
+        "get-user-agent": "--dump-user-agent",
+        // add "https://" to links passed to extractor
+        // DEFAULT true
+        "force-https": true,
+        // custom options list to extractor, like proxy, etc.
+        // same rules as mp4/m4a
+        // HEIGHT/URL/.. templates also can be used 
+        // DEFAULT []
+        "custom-options": [
+            "--option1,,value1",
+            "--option2",
+            "value2",
+            "--option3",
+            "very long value 3",
+            "--option4,,very long value 4"
+        ]
+    },
+    // default links cache config
+    "cache": {
+        // links expire time
+        // time units are "s", "m", "h", e.g. "1h10m10s", "10h", "1s"
+        // "0s" will disable cache
+        // DEFAULT "3h"
+        "expire-time": "3h"
+    },
+    // per site configs for streamer, extractor and cache.
+    // absent options will be set from default part.
+    // only exact matching domains will be affected. 
+    // e.g. "site.com/video" matching "site.com"
+    // but "www.site.com/video" is not
+    // DEFAULT []
+    "sub-config": [
+        {
+            // sub config name. displayed in logs
+            // cannot be empty
+            "name": "some site",
+            // sites list
+            "sites": [
+                "site.com",
+                "a.site.com"
+            ],
+            "extractor": {
+                "path": "my-extractor",
+                "mp4": "{{.URL}}"
+            }
+        },
+        {
+            "name": "my stream",
+            "sites": [
+                "my.streamer.example"
+            ],
+            "extractor": {
+                "path": "direct"
+            },
+            "streamer": {
+                "error-headers": true,
+                "ignore-missing-headers": true,
+                "ignore-ssl-errors": true
+            }
+        }
+    ]
+}

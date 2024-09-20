@@ -1,15 +1,16 @@
 #!/bin/bash
 
+set -e
+
 BinDir="bin"
 Md5File="all.md5"
+FilePrefix="yt-proxy"
 
 date >${Md5File}
-mkdir -p ${BinDir} || exit
-rm ${BinDir}/${FilePrefix}* -rf || exit
-cd src || exit
-go run ../build.go || exit
-cd ../$BinDir || exit
-for i in $(ls -1 *); do
-    md5sum $i >>../${Md5File} || exit
-done
+mkdir -p ${BinDir}
+rm ${BinDir}/${FilePrefix}* -rf
+cd cmd
+go run ../build.go ${FilePrefix}
+cd ../$BinDir
+md5sum -b ${FilePrefix}* >${Md5File}
 cd ..
