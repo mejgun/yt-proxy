@@ -24,6 +24,16 @@ Popular usecases:
 
 `cd cmd && go build`
 
+### Quick Start ###
+
+load fresh yt-dlp binary and put it in your system path
+make sure media files mp4 and m4a is also there
+fix default config for custopm options and my-extractor part (commenout if needed)
+start the yt-proxy app binary
+open your favourite player with this link:
+http://127.0.0.1:8080/play/www.youtube.com/watch?v=9lNZ_Rnr7Jc?/?vh=360
+
+
 ### Options ###
 
 Run with `--help`
