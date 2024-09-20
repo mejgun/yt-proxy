@@ -9,7 +9,7 @@ FilePrefix="yt-proxy"
 date >${Md5File}
 mkdir -p ${BinDir}
 rm ${BinDir}/${FilePrefix}* -rf
-cd src
+cd cmd
 go run ../build.go ${FilePrefix}
 cd ../$BinDir
 md5sum -b ${FilePrefix}* >${Md5File}
