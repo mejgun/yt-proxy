@@ -9,7 +9,24 @@
     // web server listen port.
     // DEFAULT 8080
     "port": 8080,
-    // restreamer config.
+    // logger config
+    "log": {
+        // log level
+        // debug/info/warning/error/nothing
+        // DEFAULT "info"
+        "level": "info",
+        // log destination
+        // stdout/file/both
+        // DEFAULT "stdout"
+        "output": "stdout",
+        // filename if writing to file
+        // DEFAULT "log.txt"
+        "filename": "log.txt",
+        // set output to json format
+        // DEFAULT false
+        "json": false
+    },
+    // default restreamer config.
     // restreamer takes https stream and restream it as http.
     "streamer": {
         // show errors in headers (insecure).
@@ -49,48 +66,83 @@
         // DEFAULT "TLS 1.2"
         "min-tls-version": "TLS 1.2"
     },
-    // media extractor config
+    // default media extractor config
     "extractor": {
         // file path
+        // "direct" - do not use extractor, just pass url to streamer
+        // DEFAULT "yt-dlp"
         "path": "yt-dlp",
         // arguments for extractor
         // args separator is ",,", not space
         // {{.HEIGHT}} will be replaced with requested height (360/480/720)
         // {{.URL}} will be replace with requested url
         // also you can use {{.FORMAT}} - requested format (now - only mp4 or m4a)
+        // DEFAULT "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
         "mp4": "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
         // same for m4a
+        // DEFAULT "-f,,(m4a),,-g,,{{.URL}}",
         "m4a": "-f,,(m4a),,-g,,{{.URL}}",
         // args for getting user-agent
+        // DEFAULT "--dump-user-agent"
         "get-user-agent": "--dump-user-agent",
+        // add "https://" to links passed to extractor
+        // DEFAULT true
+        "force-https": true,
         // custom options list to extractor, like proxy, etc.
         // same rules as mp4/m4a
         // HEIGHT/URL/.. templates also can be used 
-        // "custom-options": []
+        // DEFAULT []
         "custom-options": [
             "--option1,,value1",
             "--option2",
             "value2",
             "--option3",
-            "very long value 3"
+            "very long value 3",
+            "--option4,,very long value 4"
         ]
     },
-    // logger config
-    "log": {
-        // log level
-        // debug/info/warning/error/nothing
-        "level": "info",
-        // log destination
-        // stdout/file/both
-        "output": "stdout",
-        // filename if writing to file
-        "filename": "log.txt"
-    },
-    // links cache config
+    // default links cache config
     "cache": {
         // links expire time
         // time units are "s", "m", "h", e.g. "1h10m10s", "10h", "1s"
         // "0s" will disable cache
+        // DEFAULT "3h"
         "expire-time": "3h"
-    }
+    },
+    // per site configs for streamer, extractor and cache.
+    // absent options will be set from default part.
+    // only exact matching domains will be affected. 
+    // e.g. "site.com/video" matching "site.com"
+    // but "www.site.com/video" is not
+    // DEFAULT []
+    "sub-config": [
+        {
+            // sub config name. displayed in logs
+            // cannot be empty
+            "name": "some site",
+            // sites list
+            "sites": [
+                "site.com",
+                "a.site.com"
+            ],
+            "extractor": {
+                "path": "my-extractor",
+                "mp4": "{{.URL}}"
+            }
+        },
+        {
+            "name": "my stream",
+            "sites": [
+                "my.streamer.example"
+            ],
+            "extractor": {
+                "path": "direct"
+            },
+            "streamer": {
+                "error-headers": true,
+                "ignore-missing-headers": true,
+                "ignore-ssl-errors": true
+            }
+        }
+    ]
 }

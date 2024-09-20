@@ -8,7 +8,7 @@ type ConfigT struct {
 	M4A           *string   `json:"m4a"`
 	GetUserAgent  *string   `json:"get-user-agent"`
 	CustomOptions *[]string `json:"custom-options"`
-	ForceHttp     *bool     `json:"force-http"`
+	ForceHttps    *bool     `json:"force-https"`
 }
 
 type ResultT struct {

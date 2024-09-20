@@ -21,7 +21,7 @@ func New(c extractor_config.ConfigT, log logger.T) (T, error) {
 		ext layer
 		err error
 	)
-	ext.force_http = *c.ForceHttp
+	ext.force_http = *c.ForceHttps
 	if ext.force_http {
 		log.LogDebug("", "force-http", true)
 	}

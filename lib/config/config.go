@@ -68,7 +68,7 @@ func defaultConfig() ConfigT {
 			M4A:           &e[2],
 			GetUserAgent:  &e[3],
 			CustomOptions: &co,
-			ForceHttp:     &tru,
+			ForceHttps:    &tru,
 		},
 		Log: logger_config.ConfigT{
 			Level:    &ll,
@@ -135,8 +135,8 @@ func appendConfig(src ConfigT, dst ConfigT) ConfigT {
 	if dst.Extractor.CustomOptions == nil {
 		dst.Extractor.CustomOptions = src.Extractor.CustomOptions
 	}
-	if dst.Extractor.ForceHttp == nil {
-		dst.Extractor.ForceHttp = src.Extractor.ForceHttp
+	if dst.Extractor.ForceHttps == nil {
+		dst.Extractor.ForceHttps = src.Extractor.ForceHttps
 	}
 	// logger
 	if dst.Log.Level == nil {
