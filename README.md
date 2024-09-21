@@ -16,7 +16,7 @@ Popular usecases:
 ### Features
 
 *  Un-securing links, in case your player missing https support, this software removes https and provide necessary content via pure http.
-*  Provide content from modern services, by extracting (3rd party project yt-dlp is in use) direct link to video and streaming it to your software/hardware player.
+*  Provide content from modern services, by extracting (3rd party project [yt-dlp](https://github.com/yt-dlp/yt-dlp) is in use) direct link to video and streaming it to your software/hardware player.
 *  Proxy supported.
 
 ### Build ###
