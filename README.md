@@ -1,6 +1,6 @@
 ### About 
 
-Re-streamer application for video/audio streams. It gets link that isn't available for your device/software and restreams it with regular http.
+Re-streamer application for video/audio streams. It gets link that can't be handled by your device/software and restreams it with regular http.
 
 Main purpose is to allow seamless integration of a different incompatible software and hardware.
 
