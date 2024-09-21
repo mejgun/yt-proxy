@@ -1,3 +1,9 @@
+# About
+*  xupnpd_youtube fixed plugin for xupnpd v1 with youtube api v3 support
+
+Fixed plugin from third party developers, thanks to everyone who let this piece of software to be.
+
+
 # About 
 Re-streamer application for video/audio streams. It gets link that can't be handled by your device/software and restreams it with regular http.
 
