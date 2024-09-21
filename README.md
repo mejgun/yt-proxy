@@ -26,7 +26,7 @@ Popular usecases:
 ### Quick Start ###
 
 *  load fresh yt-dlp binary and put it in your system path
-*  make sure media files mp4 and m4a is also there
+*  make sure media files mp4 and m4a is also under the same directory where you run the app
 *  fix default config for custom options and my-extractor part (commentout if needed)
 *  start the yt-proxy app binary
 *  open your favourite player with this link:
