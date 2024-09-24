@@ -94,9 +94,9 @@ func parseUrlHost(rawURL string) (string, error) {
 func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	printExpired := func(links []extractor_config.RequestT) {
+	printExpired := func(a app, links []extractor_config.RequestT) {
 		if len(links) > 0 {
-			t.log.LogDebug("Expired links", links)
+			a.log.LogDebug("Expired links", links)
 		}
 	}
 	now := time.Now()
@@ -104,18 +104,18 @@ func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request) {
 	resapp := t.selectApp(req.URL)
 	t.log.LogInfo("Request", req, "app", resapp.name)
 	if res, ok, expired := resapp.cacheCheck(req, now); ok {
-		printExpired(expired)
-		t.log.LogDebug("Link already cached", res)
+		printExpired(resapp, expired)
+		resapp.log.LogDebug("Link already cached", res)
 		resapp.play(w, r, req, res, t.log)
 	} else {
-		printExpired(expired)
+		printExpired(resapp, expired)
 		res, err := resapp.extractor.Extract(req)
 		if err != nil {
-			t.log.LogError("URL extract error", err)
+			resapp.log.LogError("URL extract error", err)
 			resapp.playError(w, req, err, t.log)
 			return
 		}
-		t.log.LogDebug("Extractor returned", res)
+		resapp.log.LogDebug("Extractor returned", res)
 		resapp.cacheAdd(req, res, now, t.log)
 		resapp.play(w, r, req, res, t.log)
 	}

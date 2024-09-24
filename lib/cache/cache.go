@@ -30,5 +30,5 @@ func New(conf ConfigT, log logger.T) (T, error) {
 		return cache_empty.New(), nil
 	}
 	log.LogDebug("", fmt.Sprintf("expire time set to %s", t))
-	return cache_default.New(0), nil
+	return cache_default.New(t), nil
 }
