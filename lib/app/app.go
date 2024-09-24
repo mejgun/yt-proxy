@@ -7,6 +7,7 @@ import (
 	logger "lib/logger"
 	streamer "lib/streamer"
 	"slices"
+	"strconv"
 	"sync"
 
 	"net/http"
@@ -180,8 +181,8 @@ func parseQuery(query string) extractor_config.RequestT {
 	}
 	tOpts, tErr := url.ParseQuery(splitted[1])
 	if tErr == nil {
-		if tvh, ok := tOpts["vh"]; ok {
-			if tvh[0] == "360" || tvh[0] == "480" || tvh[0] == "720" {
+		if tvh, ok := tOpts["vh"]; ok && len(tvh[0]) > 2 && len(tvh[0]) < 5 {
+			if _, err := strconv.ParseUint(tvh[0], 10, 64); err == nil {
 				req.HEIGHT = tvh[0]
 			}
 		}

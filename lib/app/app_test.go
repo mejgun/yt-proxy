@@ -38,6 +38,11 @@ func TestParseQuery(t *testing.T) {
 			HEIGHT: defaultVideoHeight,
 			FORMAT: "mp4",
 		},
+		"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4&vh=11111": {
+			URL:    "youtu.be/jNQXAC9IVRw",
+			HEIGHT: defaultVideoHeight,
+			FORMAT: "mp4",
+		},
 	}
 	for k, v := range testPairs {
 		if r := parseQuery(k); r != v {

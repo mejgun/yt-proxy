@@ -74,7 +74,7 @@
         "path": "yt-dlp",
         // arguments for extractor
         // args separator is ",,", not space
-        // {{.HEIGHT}} will be replaced with requested height (360/480/720)
+        // {{.HEIGHT}} will be replaced with requested height (360/480/720/...)
         // {{.URL}} will be replace with requested url
         // also you can use {{.FORMAT}} - requested format (now - only mp4 or m4a)
         // DEFAULT "-f,,(mp4)[height<={{.HEIGHT}}],,-g,,{{.URL}}",
