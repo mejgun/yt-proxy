@@ -93,12 +93,12 @@
         // HEIGHT/URL/.. templates also can be used 
         // DEFAULT []
         "custom-options": [
-        //    "--option1,,value1",
-        //    "--option2",
-        //    "value2",
-        //    "--option3",
-        //    "very long value 3",
-        //    "--option4,,very long value 4"
+            //    "--option1,,value1",
+            //    "--option2",
+            //    "value2",
+            //    "--option3",
+            //    "very long value 3",
+            //    "--option4,,very long value 4"
         ]
     },
     // default links cache config
@@ -116,20 +116,20 @@
     // but "www.site.com/video" is not
     // DEFAULT []
     "sub-config": [
-        //{
+        {
             // sub config name. displayed in logs
             // cannot be empty
-        //    "name": "some site",
+            "name": "some site",
             // sites list
-        //    "sites": [
-        //        "site.com",
-        //        "a.site.com"
-        //    ],
-        //    "extractor": {
-        //        "path": "my-extractor",
-        //        "mp4": "{{.URL}}"
-        //    }
-        //},
+            "sites": [
+                "site.com",
+                "a.site.com"
+            ],
+            "extractor": {
+                "path": "my-extractor",
+                "mp4": "{{.URL}}"
+            }
+        },
         {
             "name": "my stream",
             "sites": [
