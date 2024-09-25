@@ -1,52 +1,25 @@
 package app
 
 import (
+	"fmt"
+	"strings"
 	"testing"
-
-	extractor_config "lib/extractor/config"
 )
 
 func TestParseQuery(t *testing.T) {
-	var testPairs = map[string]extractor_config.RequestT{
-		"/play/youtu.be/jNQXAC9IVRw?/?vh=360&vf=mp4": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: "360",
-			FORMAT: "mp4",
-		},
-		"/play/youtu.be/jNQXAC9IVRw?/?vh=720?vf=avi": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: "720",
-			FORMAT: defaultVideoFormat,
-		},
-		"/play/youtu.be/jNQXAC9IVRw": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: defaultVideoHeight,
-			FORMAT: defaultVideoFormat,
-		},
-		"/play/youtu.be/jNQXAC9IVRw?/?": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: defaultVideoHeight,
-			FORMAT: defaultVideoFormat,
-		},
-		"/play/youtu.be/jNQXAC9IVRw?/?vf=avi": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: defaultVideoHeight,
-			FORMAT: defaultVideoFormat,
-		},
-		"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: defaultVideoHeight,
-			FORMAT: "mp4",
-		},
-		"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4&vh=11111": {
-			URL:    "youtu.be/jNQXAC9IVRw",
-			HEIGHT: defaultVideoHeight,
-			FORMAT: "mp4",
-		},
+	var testPairs = map[string]string{
+		"/play/youtu.be/jNQXAC9IVRw?/?vh=360&vf=mp4":   "youtu.be/jNQXAC9IVRw|360|mp4",
+		"/play/youtu.be/jNQXAC9IVRw?/?vh=720&vf=avi":   "youtu.be/jNQXAC9IVRw|720|mp4",
+		"/play/youtu.be/jNQXAC9IVRw":                   "youtu.be/jNQXAC9IVRw|0|mp4",
+		"/play/youtu.be/jNQXAC9IVRw?/?":                "youtu.be/jNQXAC9IVRw|0|mp4",
+		"/play/youtu.be/jNQXAC9IVRw?/?vf=avi":          "youtu.be/jNQXAC9IVRw|0|mp4",
+		"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4":          "youtu.be/jNQXAC9IVRw|0|mp4",
+		"/play/youtu.be/jNQXAC9IVRw?/?vf=mp4&vh=11111": "youtu.be/jNQXAC9IVRw|11111|mp4",
 	}
 	for k, v := range testPairs {
-		if r := parseQuery(k); r != v {
-			t.Error("For", k, "expected", v, "got", r)
+		l, h, f := parseQuery(k)
+		if strings.Join([]string{l, fmt.Sprintf("%d", h), f}, "|") != v {
+			t.Error("For", k, "expected", v, "got", l, h, f)
 		}
 	}
 }

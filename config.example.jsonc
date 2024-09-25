@@ -9,6 +9,9 @@
     // web server listen port.
     // DEFAULT 8080
     "port": 8080,
+    // used if video height not set in request
+    // DEFAULT 720
+    "default-video-height": 360,
     // logger config
     "log": {
         // log level
@@ -135,6 +138,7 @@
             "sites": [
                 "my.streamer.example"
             ],
+            "default-video-height": 1080,
             "extractor": {
                 "path": "direct"
             },

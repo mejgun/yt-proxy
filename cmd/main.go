@@ -205,11 +205,12 @@ func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
 		return app.Option{}, nameerr(texts[2], err)
 	}
 	return app.Option{
-		Name:  v.Name,
-		Sites: v.Sites,
-		X:     xtr,
-		S:     strm,
-		C:     cch,
-		L:     logger.NewLayer(log, fmt.Sprintf("[%s] app", v.Name)),
+		Name:               v.Name,
+		Sites:              v.Sites,
+		X:                  xtr,
+		S:                  strm,
+		C:                  cch,
+		L:                  logger.NewLayer(log, fmt.Sprintf("[%s] app", v.Name)),
+		DefaultVideoHeight: v.DefaultVideoHeight,
 	}, nil
 }

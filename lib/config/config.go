@@ -13,13 +13,14 @@ import (
 )
 
 type ConfigT struct {
-	PortInt   uint16                   `json:"port"`
-	Host      string                   `json:"host"`
-	Streamer  streamer.ConfigT         `json:"streamer"`
-	Extractor extractor_config.ConfigT `json:"extractor"`
-	Log       logger_config.ConfigT    `json:"log"`
-	Cache     cache.ConfigT            `json:"cache"`
-	SubConfig []SubConfigT             `json:"sub-config"`
+	PortInt            uint16                   `json:"port"`
+	Host               string                   `json:"host"`
+	DefaultVideoHeight uint16                   `json:"default-video-height"`
+	Streamer           streamer.ConfigT         `json:"streamer"`
+	Extractor          extractor_config.ConfigT `json:"extractor"`
+	Log                logger_config.ConfigT    `json:"log"`
+	Cache              cache.ConfigT            `json:"cache"`
+	SubConfig          []SubConfigT             `json:"sub-config"`
 }
 
 type SubConfigT struct {
@@ -49,8 +50,9 @@ func defaultConfig() ConfigT {
 	lf := "log.txt"
 	exp := "3h"
 	return ConfigT{
-		PortInt: 8080,
-		Host:    "0.0.0.0",
+		PortInt:            8080,
+		Host:               "0.0.0.0",
+		DefaultVideoHeight: 720,
 		Streamer: streamer.ConfigT{
 			EnableErrorHeaders:   &fls,
 			IgnoreMissingHeaders: &fls,
@@ -90,6 +92,9 @@ func appendConfig(src ConfigT, dst ConfigT) ConfigT {
 	}
 	if dst.Host == "" {
 		dst.Host = src.Host
+	}
+	if dst.DefaultVideoHeight == 0 {
+		dst.DefaultVideoHeight = src.DefaultVideoHeight
 	}
 	// streamer
 	if dst.Streamer.EnableErrorHeaders == nil {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	cache "lib/cache"
 	extractor "lib/extractor"
 	extractor_config "lib/extractor/config"
@@ -17,17 +18,17 @@ import (
 )
 
 const (
-	defaultVideoHeight = "720"
 	defaultVideoFormat = "mp4"
 )
 
 type app struct {
-	cache     cache.T
-	extractor extractor.T
-	streamer  streamer.T
-	name      string
-	sites     []string
-	log       logger.T
+	cache              cache.T
+	extractor          extractor.T
+	streamer           streamer.T
+	name               string
+	sites              []string
+	log                logger.T
+	defaultVideoHeight uint16
 }
 
 type AppLogic struct {
@@ -38,12 +39,13 @@ type AppLogic struct {
 }
 
 type Option struct {
-	Name  string
-	Sites []string
-	X     extractor.T
-	S     streamer.T
-	C     cache.T
-	L     logger.T
+	Name               string
+	Sites              []string
+	X                  extractor.T
+	S                  streamer.T
+	C                  cache.T
+	L                  logger.T
+	DefaultVideoHeight uint16
 }
 
 func New(log logger.T, def Option, opts []Option) *AppLogic {
@@ -55,22 +57,24 @@ func New(log logger.T, def Option, opts []Option) *AppLogic {
 func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
 	t.log = log
 	t.defaultApp = app{
-		log:       def.L,
-		name:      "default",
-		cache:     def.C,
-		extractor: def.X,
-		streamer:  def.S,
+		log:                def.L,
+		name:               "default",
+		cache:              def.C,
+		extractor:          def.X,
+		streamer:           def.S,
+		defaultVideoHeight: def.DefaultVideoHeight,
 	}
 
 	t.appList = make([]app, 0)
 	for _, v := range opts {
 		t.appList = append(t.appList, app{
-			cache:     v.C,
-			extractor: v.X,
-			streamer:  v.S,
-			name:      v.Name,
-			sites:     v.Sites,
-			log:       v.L,
+			cache:              v.C,
+			extractor:          v.X,
+			streamer:           v.S,
+			name:               v.Name,
+			sites:              v.Sites,
+			log:                v.L,
+			defaultVideoHeight: v.DefaultVideoHeight,
 		})
 	}
 }
@@ -101,8 +105,9 @@ func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	now := time.Now()
-	req := parseQuery(r.RequestURI)
-	resapp := t.selectApp(req.URL)
+	link, height, format := parseQuery(r.RequestURI)
+	resapp := t.selectApp(link)
+	req := resapp.fixRequest(link, height, format)
 	t.log.LogInfo("Request", req, "app", resapp.name)
 	if res, ok, expired := resapp.cacheCheck(req, now); ok {
 		printExpired(resapp, expired)
@@ -169,30 +174,42 @@ func remove_http(url string) string {
 	return url
 }
 
-func parseQuery(query string) extractor_config.RequestT {
-	var req extractor_config.RequestT
+func parseQuery(query string) (string, uint64, string) {
 	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
 	splitted := strings.Split(query, "?/?")
-	req.URL = remove_http(splitted[0])
-	req.HEIGHT = defaultVideoHeight
-	req.FORMAT = defaultVideoFormat
+	link := remove_http(splitted[0])
+	format := defaultVideoFormat
+	var height uint64
 	if len(splitted) != 2 {
-		return req
+		return link, 0, format
 	}
 	tOpts, tErr := url.ParseQuery(splitted[1])
 	if tErr == nil {
-		if tvh, ok := tOpts["vh"]; ok && len(tvh[0]) > 2 && len(tvh[0]) < 5 {
-			if _, err := strconv.ParseUint(tvh[0], 10, 64); err == nil {
-				req.HEIGHT = tvh[0]
-			}
+		if tvh, ok := tOpts["vh"]; ok {
+			height, _ = strconv.ParseUint(tvh[0], 10, 64)
 		}
 		if tvf, ok := tOpts["vf"]; ok {
 			if tvf[0] == "mp4" || tvf[0] == "m4a" {
-				req.FORMAT = tvf[0]
+				format = tvf[0]
 			}
 		}
 	}
-	return req
+	return link, height, format
+
+}
+
+func (t *app) fixRequest(link string, height uint64, format string) extractor_config.RequestT {
+	var h string
+	if height == 0 {
+		h = fmt.Sprintf("%d", t.defaultVideoHeight)
+	} else {
+		h = fmt.Sprintf("%d", height)
+	}
+	return extractor_config.RequestT{
+		URL:    link,
+		HEIGHT: h,
+		FORMAT: format,
+	}
 }
 
 func (t *AppLogic) Shutdown() {
