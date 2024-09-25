@@ -182,13 +182,32 @@ func Read(path string) (ConfigT, error) {
 				strs = append(strs, s)
 			}
 		}
-		str := strings.Join(strs, "\n")
+		str := strings.Join(strs, "")
 		b = b[:0]
 		b = []byte(str)
 
 	}()
 	err = json.Unmarshal(b, &c)
 	if err != nil {
+		wraperr := func(offset int64) error {
+			l, h := offset-30, offset+20
+			pre, post := "…", "…"
+			if l < 0 {
+				l = 0
+				pre = ""
+			}
+			if h > int64(len(b)) {
+				h = int64(len(b))
+				post = ""
+			}
+			return fmt.Errorf("%s '%s%s%s'", err, pre, b[l:h], post)
+		}
+		switch e := err.(type) {
+		case *json.UnmarshalTypeError:
+			err = wraperr(e.Offset)
+		case *json.SyntaxError:
+			err = wraperr(e.Offset)
+		}
 		return c, err
 	}
 	c = appendConfig(defaultConfig(), c)
