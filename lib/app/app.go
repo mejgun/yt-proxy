@@ -28,7 +28,8 @@ type app struct {
 	name               string
 	sites              []string
 	log                logger.T
-	defaultVideoHeight uint16
+	defaultVideoHeight uint64
+	maxVideoHeight     uint64
 }
 
 type AppLogic struct {
@@ -45,7 +46,8 @@ type Option struct {
 	S                  streamer.T
 	C                  cache.T
 	L                  logger.T
-	DefaultVideoHeight uint16
+	DefaultVideoHeight uint64
+	MaxVideoHeight     uint64
 }
 
 func New(log logger.T, def Option, opts []Option) *AppLogic {
@@ -63,6 +65,7 @@ func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
 		extractor:          def.X,
 		streamer:           def.S,
 		defaultVideoHeight: def.DefaultVideoHeight,
+		maxVideoHeight:     def.MaxVideoHeight,
 	}
 
 	t.appList = make([]app, 0)
@@ -75,6 +78,7 @@ func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
 			sites:              v.Sites,
 			log:                v.L,
 			defaultVideoHeight: v.DefaultVideoHeight,
+			maxVideoHeight:     v.MaxVideoHeight,
 		})
 	}
 }
@@ -199,11 +203,19 @@ func parseQuery(query string) (string, uint64, string) {
 }
 
 func (t *app) fixRequest(link string, height uint64, format string) extractor_config.RequestT {
-	var h string
-	if height == 0 {
-		h = fmt.Sprintf("%d", t.defaultVideoHeight)
-	} else {
-		h = fmt.Sprintf("%d", height)
+	var (
+		h   string
+		toS = func(d uint64) string {
+			return fmt.Sprintf("%d", d)
+		}
+	)
+	switch {
+	case height == 0:
+		h = toS(t.defaultVideoHeight)
+	case height > t.maxVideoHeight:
+		h = toS(t.maxVideoHeight)
+	default:
+		h = toS(height)
 	}
 	return extractor_config.RequestT{
 		URL:    link,

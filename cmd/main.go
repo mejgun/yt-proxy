@@ -212,5 +212,6 @@ func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
 		C:                  cch,
 		L:                  logger.NewLayer(log, fmt.Sprintf("[%s] app", v.Name)),
 		DefaultVideoHeight: v.DefaultVideoHeight,
+		MaxVideoHeight:     v.MaxVideoHeight,
 	}, nil
 }
