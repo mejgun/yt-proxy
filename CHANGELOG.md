@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - cache creating
 ### Added
 - any video height setting possibility
+- force connections closing on stop/reload
 
 ## 2.0.0 - 2024-09-20
 app refactored & reworked

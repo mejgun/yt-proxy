@@ -202,7 +202,6 @@ func (t *AppLogic) Shutdown() {
 }
 
 func (t *AppLogic) ReloadConfig(log logger.T, def Option, opts []Option) {
-	t.log.LogDebug("Waiting for clients disconnect to reload app")
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.log.LogInfo("Reloading app")

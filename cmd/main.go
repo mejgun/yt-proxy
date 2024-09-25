@@ -67,20 +67,47 @@ func startApp(conf_file string) {
 		app.Run(w, r)
 		log.LogInfo("Player disconnected", r.RemoteAddr)
 	})
-	s := &http.Server{
-		Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt),
-	}
-	go signalsCatcher(conf_file, log, app, s)
+	shouldWait := make(chan confChan)
+	go signalsCatcher(conf_file, log, app, shouldWait)
+	httpLoop(log, conf, shouldWait)
+}
 
-	log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
-	if err = s.ListenAndServe(); err == http.ErrServerClosed {
-		log.LogInfo("HTTP server closed")
-		os.Exit(NoError)
-	} else {
-		log.LogError("HTTP server", err)
+func makeServer(conf config.ConfigT) *http.Server {
+	return &http.Server{Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt)}
+}
+
+type confChan struct {
+	cnf     config.ConfigT
+	restart bool
+}
+
+func httpLoop(log logger.T, conf config.ConfigT, ch <-chan confChan) {
+	for {
+		log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
+		s := makeServer(conf)
+		done := make(chan struct{})
+		go startHttp(s, log, done)
+		<-ch
+		log.LogInfo("Stopping web server")
+		s.Close()
+		s.Shutdown(context.Background())
+		<-done
+		msg := <-ch
+		if !msg.restart {
+			log.LogInfo("Web server stopped")
+			os.Exit(NoError)
+		}
+		conf = msg.cnf
+	}
+}
+
+func startHttp(s *http.Server, log logger.T, done chan<- struct{}) {
+	if err := s.ListenAndServe(); err != http.ErrServerClosed {
+		log.LogError("HTTP server error", err)
 		log.Close()
 		os.Exit(SomeError)
 	}
+	done <- struct{}{}
 }
 
 func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
@@ -118,30 +145,33 @@ func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
 	return conf, defapp, opts, log, nil
 }
 
-func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic, s *http.Server) {
+func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic,
+	ch chan<- confChan) {
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigint,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM)
 	for {
 		switch <-sigint {
 		case syscall.SIGHUP:
 			log.LogWarning("Config reloading")
-			_, def, opts, lognew, err := readConfig(conf_file)
+			conf, def, opts, lognew, err := readConfig(conf_file)
 			if err != nil {
 				log.LogError("Config reload error", err)
 			} else {
+				ch <- confChan{}
 				app.ReloadConfig(logger.NewLayer(lognew, "App"), def, opts)
 				log = lognew
+				ch <- confChan{conf, true}
 			}
 		case syscall.SIGINT:
 			fallthrough
 		case syscall.SIGTERM:
 			log.LogWarning("Exiting")
+			ch <- confChan{}
 			app.Shutdown()
-			if err := s.Shutdown(context.Background()); err != nil {
-				// Error from closing listeners, or context timeout:
-				log.LogError("HTTP server Shutdown", err)
-			}
-			return
+			ch <- confChan{}
 		}
 	}
 }
