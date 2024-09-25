@@ -17,7 +17,7 @@ import (
 	streamer "lib/streamer"
 )
 
-const appVersion = "2.0.0"
+const appVersion = "2.2.0"
 
 type flagsT struct {
 	version bool
@@ -124,9 +124,12 @@ func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
 
 	defapp, err := getNewApp(log, config.SubConfigT{
 		ConfigT: config.ConfigT{
-			Streamer:  conf.Streamer,
-			Extractor: conf.Extractor,
-			Cache:     conf.Cache,
+			Streamer:           conf.Streamer,
+			Extractor:          conf.Extractor,
+			Cache:              conf.Cache,
+			DefaultVideoHeight: conf.DefaultVideoHeight,
+			MaxVideoHeight:     conf.MaxVideoHeight,
+			Sites:              conf.Sites,
 		},
 		Name: "default",
 	})

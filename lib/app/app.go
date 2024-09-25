@@ -66,6 +66,7 @@ func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
 		streamer:           def.S,
 		defaultVideoHeight: def.DefaultVideoHeight,
 		maxVideoHeight:     def.MaxVideoHeight,
+		sites:              def.Sites,
 	}
 
 	t.appList = make([]app, 0)
@@ -83,16 +84,19 @@ func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
 	}
 }
 
-func (t *AppLogic) selectApp(rawURL string) app {
+func (t *AppLogic) selectApp(rawURL string) (app, error) {
 	host, err := parseUrlHost(rawURL)
 	if err == nil {
 		for _, v := range t.appList {
 			if slices.Contains(v.sites, host) {
-				return v
+				return v, nil
 			}
 		}
 	}
-	return t.defaultApp
+	if len(t.defaultApp.sites) == 0 || slices.Contains(t.defaultApp.sites, host) {
+		return t.defaultApp, nil
+	}
+	return app{}, fmt.Errorf("host %s did not match any sites in config or sub-configs", host)
 }
 
 func parseUrlHost(rawURL string) (string, error) {
@@ -110,7 +114,12 @@ func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request) {
 	}
 	now := time.Now()
 	link, height, format := parseQuery(r.RequestURI)
-	resapp := t.selectApp(link)
+	resapp, err := t.selectApp(link)
+	if err != nil {
+		t.log.LogWarning("", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	req := resapp.fixRequest(link, height, format)
 	t.log.LogInfo("Request", req, "app", resapp.name)
 	if res, ok, expired := resapp.cacheCheck(req, now); ok {

@@ -17,6 +17,7 @@ type ConfigT struct {
 	Host               string                   `json:"host"`
 	DefaultVideoHeight uint64                   `json:"default-video-height"`
 	MaxVideoHeight     uint64                   `json:"max-video-height"`
+	Sites              []string                 `json:"sites"`
 	Streamer           streamer.ConfigT         `json:"streamer"`
 	Extractor          extractor_config.ConfigT `json:"extractor"`
 	Log                logger_config.ConfigT    `json:"log"`
@@ -25,8 +26,7 @@ type ConfigT struct {
 }
 
 type SubConfigT struct {
-	Name  string   `json:"name"`
-	Sites []string `json:"sites"`
+	Name string `json:"name"`
 	ConfigT
 }
 

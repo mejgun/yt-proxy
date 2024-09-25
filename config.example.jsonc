@@ -15,6 +15,12 @@
     // restrict maximum video height.
     // DEFAULT 720
     "max-video-height": 1080,
+    // sites (hosts) list.
+    // if not empty, only the specified sites will work,
+    // others will be forbidden.
+    // see sub-config part for a detailed explaination.
+    // DEFAULT []
+    "sites": [],
     // logger config
     "log": {
         // log level
