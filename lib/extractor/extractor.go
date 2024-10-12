@@ -12,8 +12,8 @@ import (
 const separator = ",,"
 
 type T interface {
-	Extract(extractor_config.RequestT) (extractor_config.ResultT, error)
-	GetUserAgent() (string, error)
+	Extract(extractor_config.RequestT, logger.T) (extractor_config.ResultT, error)
+	GetUserAgent(logger.T) (string, error)
 }
 
 func New(c extractor_config.ConfigT, log logger.T) (T, error) {
@@ -25,7 +25,7 @@ func New(c extractor_config.ConfigT, log logger.T) (T, error) {
 	if ext.force_http {
 		log.LogDebug("", "force-http", true)
 	}
-	ext.impl, err = real_new(c, log)
+	ext.impl, err = real_new(c)
 	return &ext, err
 }
 
@@ -34,18 +34,18 @@ type layer struct {
 	force_http bool
 }
 
-func (t *layer) Extract(req extractor_config.RequestT) (extractor_config.ResultT, error) {
+func (t *layer) Extract(req extractor_config.RequestT, log logger.T) (extractor_config.ResultT, error) {
 	if t.force_http {
 		req.URL = "https://" + req.URL
 	}
-	return t.impl.Extract(req)
+	return t.impl.Extract(req, log)
 }
 
-func (t *layer) GetUserAgent() (string, error) {
-	return t.impl.GetUserAgent()
+func (t *layer) GetUserAgent(log logger.T) (string, error) {
+	return t.impl.GetUserAgent(log)
 }
 
-func real_new(c extractor_config.ConfigT, log logger.T) (T, error) {
+func real_new(c extractor_config.ConfigT) (T, error) {
 	switch *c.Path {
 	case "direct":
 		return extractor_direct.New()
@@ -60,7 +60,6 @@ func real_new(c extractor_config.ConfigT, log logger.T) (T, error) {
 			split(*c.M4A),
 			*c.GetUserAgent,
 			co,
-			log,
 		)
 	}
 }

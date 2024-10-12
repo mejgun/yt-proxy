@@ -14,7 +14,7 @@ import (
 )
 
 func New(path string, mp4, m4a []string, get_user_agent string,
-	custom_options []string, log logger.T) (*defaultExtractor, error) {
+	custom_options []string) (*defaultExtractor, error) {
 	var (
 		e   defaultExtractor
 		err error
@@ -44,7 +44,6 @@ func New(path string, mp4, m4a []string, get_user_agent string,
 	}
 	e.getUserAgent = get_user_agent
 	e.path = path
-	e.logger = log
 	return &e, nil
 }
 
@@ -55,14 +54,13 @@ type defaultExtractor struct {
 	m4a           []*template.Template
 	customOptions []*template.Template
 	getUserAgent  string
-	logger        logger.T
 }
 
-func (t *defaultExtractor) GetUserAgent() (string, error) {
-	return t.runCmd([]string{t.getUserAgent})
+func (t *defaultExtractor) GetUserAgent(log logger.T) (string, error) {
+	return t.runCmd([]string{t.getUserAgent}, log)
 }
 
-func (t *defaultExtractor) Extract(req extractor_config.RequestT,
+func (t *defaultExtractor) Extract(req extractor_config.RequestT, log logger.T,
 ) (extractor_config.ResultT, error) {
 	var (
 		buf        []string
@@ -97,21 +95,23 @@ func (t *defaultExtractor) Extract(req extractor_config.RequestT,
 		return extractor_config.ResultT{}, err
 	}
 	bufOptions = append(bufOptions, buf...)
-	out, err := t.runCmd(bufOptions)
+	out, err := t.runCmd(bufOptions, log)
 	if err != nil {
 		return extractor_config.ResultT{}, err
 	}
 	return extractor_config.ResultT{URL: out}, err
 }
 
-func (t *defaultExtractor) runCmd(args []string) (string, error) {
+func (t *defaultExtractor) runCmd(args []string, log logger.T) (string, error) {
 	t.Lock()
 	defer t.Unlock()
+	log = logger.NewLayer(log, "Extractor")
 	cmd := exec.Command(t.path, args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	t.logger.LogDebug("Running", "path", t.path, "args", strings.Join(args, " "))
+	log.LogDebug("Running", "cmd",
+		fmt.Sprintf("%s '%s'", t.path, strings.Join(args, "' '")))
 	err := cmd.Run()
 	outStr, errStr := bytesToString(stdout), bytesToString(stderr)
 	if err != nil {

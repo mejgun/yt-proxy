@@ -52,20 +52,15 @@ func startApp(conf_file string) {
 		os.Stderr.WriteString(fmt.Sprintf("Config read error: %s\n", err))
 		os.Exit(SomeError)
 	}
-	app := app.New(
-		logger.NewLayer(log, "App"),
-		def, opts)
+	app := app.New(def, opts)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.LogInfo("Bad request", r.RemoteAddr, r.RequestURI)
-		log.LogDebug("Bad request", r)
+		log.LogInfo("Bad request", "addr", r.RemoteAddr, "url", r.RequestURI)
+		log.LogDebug("Bad request", "req", r)
 		http.NotFound(w, r)
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
-		log.LogInfo("Play request", r.RemoteAddr, r.RequestURI)
-		log.LogDebug("User request", r)
-		app.Run(w, r)
-		log.LogInfo("Player disconnected", r.RemoteAddr)
+		app.Run(w, r, log)
 	})
 	shouldWait := make(chan confChan)
 	go signalsCatcher(conf_file, log, app, shouldWait)
@@ -103,7 +98,7 @@ func httpLoop(log logger.T, conf config.ConfigT, ch <-chan confChan) {
 
 func startHttp(s *http.Server, log logger.T, done chan<- struct{}) {
 	if err := s.ListenAndServe(); err != http.ErrServerClosed {
-		log.LogError("HTTP server error", err)
+		log.LogError("HTTP server", "error", err)
 		log.Close()
 		os.Exit(SomeError)
 	}
@@ -161,10 +156,10 @@ func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic,
 			log.LogWarning("Config reloading")
 			conf, def, opts, lognew, err := readConfig(conf_file)
 			if err != nil {
-				log.LogError("Config reload error", err)
+				log.LogError("Config reload", "error", err)
 			} else {
 				ch <- confChan{}
-				app.ReloadConfig(logger.NewLayer(lognew, "App"), def, opts)
+				app.ReloadConfig(lognew, def, opts)
 				log = lognew
 				ch <- confChan{conf, true}
 			}
@@ -173,7 +168,7 @@ func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic,
 		case syscall.SIGTERM:
 			log.LogWarning("Exiting")
 			ch <- confChan{}
-			app.Shutdown()
+			app.Shutdown(log)
 			ch <- confChan{}
 		}
 	}
@@ -213,7 +208,6 @@ func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
 		X:                  xtr,
 		S:                  strm,
 		C:                  cch,
-		L:                  logger.NewLayer(log, fmt.Sprintf("[%s] app", v.Name)),
 		DefaultVideoHeight: v.DefaultVideoHeight,
 		MaxVideoHeight:     v.MaxVideoHeight,
 	}, nil

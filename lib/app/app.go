@@ -27,14 +27,12 @@ type app struct {
 	streamer           streamer.T
 	name               string
 	sites              []string
-	log                logger.T
 	defaultVideoHeight uint64
 	maxVideoHeight     uint64
 }
 
 type AppLogic struct {
 	mu         sync.RWMutex
-	log        logger.T
 	defaultApp app
 	appList    []app
 }
@@ -45,21 +43,18 @@ type Option struct {
 	X                  extractor.T
 	S                  streamer.T
 	C                  cache.T
-	L                  logger.T
 	DefaultVideoHeight uint64
 	MaxVideoHeight     uint64
 }
 
-func New(log logger.T, def Option, opts []Option) *AppLogic {
+func New(def Option, opts []Option) *AppLogic {
 	var t AppLogic
-	t.set(log, def, opts)
+	t.set(def, opts)
 	return &t
 }
 
-func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
-	t.log = log
+func (t *AppLogic) set(def Option, opts []Option) {
 	t.defaultApp = app{
-		log:                def.L,
 		name:               "default",
 		cache:              def.C,
 		extractor:          def.X,
@@ -77,7 +72,6 @@ func (t *AppLogic) set(log logger.T, def Option, opts []Option) {
 			streamer:           v.S,
 			name:               v.Name,
 			sites:              v.Sites,
-			log:                v.L,
 			defaultVideoHeight: v.DefaultVideoHeight,
 			maxVideoHeight:     v.MaxVideoHeight,
 		})
@@ -104,39 +98,43 @@ func parseUrlHost(rawURL string) (string, error) {
 	return u.Host, err
 }
 
-func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request) {
+func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request, log logger.T) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	printExpired := func(a app, links []extractor_config.RequestT) {
-		if len(links) > 0 {
-			a.log.LogDebug("Expired links", links)
-		}
-	}
+	log = logger.NewLayer(log, fmt.Sprintf("App %s", r.RemoteAddr))
+	log.LogInfo("Play request", "url", r.RequestURI, "full", r)
+	defer log.LogInfo("Player disconnected")
 	now := time.Now()
 	link, height, format := parseQuery(r.RequestURI)
 	resapp, err := t.selectApp(link)
 	if err != nil {
-		t.log.LogWarning("", err)
+		log.LogWarning("", "error", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	resapp_log := logger.NewLayer(log, fmt.Sprintf("[%s]", resapp.name))
+	printExpired := func(links []extractor_config.RequestT) {
+		if len(links) > 0 {
+			resapp_log.LogDebug("Expired", "links", links)
+		}
+	}
 	req := resapp.fixRequest(link, height, format)
-	t.log.LogInfo("Request", req, "app", resapp.name)
+	log.LogInfo("", "req", req, "app", resapp.name)
 	if res, ok, expired := resapp.cacheCheck(req, now); ok {
-		printExpired(resapp, expired)
-		resapp.log.LogDebug("Link already cached", res)
-		resapp.play(w, r, req, res, t.log)
+		printExpired(expired)
+		resapp_log.LogDebug("Already cached", "link", res)
+		resapp.play(w, r, req, res, resapp_log)
 	} else {
-		printExpired(resapp, expired)
-		res, err := resapp.extractor.Extract(req)
+		printExpired(expired)
+		res, err := resapp.extractor.Extract(req, resapp_log)
 		if err != nil {
-			resapp.log.LogError("URL extract error", err)
-			resapp.playError(w, req, err, t.log)
+			resapp_log.LogError("URL extract", "error", err)
+			resapp.playError(w, req, err, resapp_log)
 			return
 		}
-		resapp.log.LogDebug("Extractor returned", res)
-		resapp.cacheAdd(req, res, now, t.log)
-		resapp.play(w, r, req, res, t.log)
+		resapp_log.LogDebug("Extractor returned", "link", res)
+		resapp.cacheAdd(req, res, now, resapp_log)
+		resapp.play(w, r, req, res, resapp_log)
 	}
 }
 
@@ -145,11 +143,11 @@ func (t *app) play(
 	r *http.Request,
 	req extractor_config.RequestT,
 	res extractor_config.ResultT,
-	logger logger.T,
+	log logger.T,
 ) {
-	if err := t.streamer.Play(w, r, req, res); err != nil {
-		logger.LogError("Restream error", err)
-		t.playError(w, req, err, logger)
+	if err := t.streamer.Play(w, r, req, res, log); err != nil {
+		log.LogError("Restream", "error", err)
+		t.playError(w, req, err, log)
 	}
 }
 
@@ -157,10 +155,10 @@ func (t *app) playError(
 	w http.ResponseWriter,
 	req extractor_config.RequestT,
 	err error,
-	logger logger.T,
+	log logger.T,
 ) {
 	if err := t.streamer.PlayError(w, req, err); err != nil {
-		logger.LogError("Error occured while playing error video", err)
+		log.LogError("Error occured while playing error video", "error", err)
 	}
 }
 
@@ -174,9 +172,9 @@ func (t *app) cacheAdd(
 	req extractor_config.RequestT,
 	res extractor_config.ResultT,
 	now time.Time,
-	logger logger.T,
+	log logger.T,
 ) {
-	logger.LogDebug("Cache add", res)
+	log.LogDebug("Cache", "add", res)
 	t.cache.Add(req, res, now)
 }
 
@@ -233,17 +231,17 @@ func (t *app) fixRequest(link string, height uint64, format string) extractor_co
 	}
 }
 
-func (t *AppLogic) Shutdown() {
+func (t *AppLogic) Shutdown(log logger.T) {
 	t.mu.Lock() // locking app forever
-	t.log.LogInfo("Exiting")
-	t.log.Close()
+	log.LogInfo("Exiting")
+	log.Close()
 }
 
 func (t *AppLogic) ReloadConfig(log logger.T, def Option, opts []Option) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.log.LogInfo("Reloading app")
-	t.log.Close()
-	t.set(log, def, opts)
-	t.log.LogInfo("Reloading complete")
+	log.LogInfo("Reloading app")
+	log.Close()
+	t.set(def, opts)
+	log.LogInfo("Reloading complete")
 }

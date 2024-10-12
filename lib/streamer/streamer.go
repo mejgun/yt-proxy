@@ -86,7 +86,7 @@ func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
 }
 
 type T interface {
-	Play(http.ResponseWriter, *http.Request, extractor_config.RequestT, extractor_config.ResultT) error
+	Play(http.ResponseWriter, *http.Request, extractor_config.RequestT, extractor_config.ResultT, logger.T) error
 	PlayError(http.ResponseWriter, extractor_config.RequestT, error) error
 }
 
@@ -97,7 +97,6 @@ type streamer struct {
 	sendErrorFile        sendErrorFileF
 	setHeaders           func(http.ResponseWriter, *http.Response) error
 	setStreamerUserAgent func(*http.Request) string
-	log                  logger.T
 }
 
 type (
@@ -128,8 +127,8 @@ func New(conf ConfigT, log logger.T, xt extractor.T) (T, error) {
 	}
 	s.errorAudioFile.contentType = "audio/mp4"
 	s.httpRequest, logs, err = makeDoRequestFunc(conf)
-	for _, v := range logs {
-		log.LogDebug("streamer", v)
+	for k, v := range logs {
+		log.LogDebug("streamer", k, v)
 	}
 	if err != nil {
 		return &s, err
@@ -140,7 +139,6 @@ func New(conf ConfigT, log logger.T, xt extractor.T) (T, error) {
 	if err != nil {
 		return &s, err
 	}
-	s.log = log
 	return &s, nil
 }
 
@@ -149,6 +147,7 @@ func (t *streamer) Play(
 	req *http.Request,
 	reqst extractor_config.RequestT,
 	rest extractor_config.ResultT,
+	log logger.T,
 ) error {
 	// t.log.LogDebug("Streamer request", rest)
 	// fail := func(str string, err error) {
@@ -169,7 +168,7 @@ func (t *streamer) Play(
 		return err
 	}
 	defer res.Body.Close()
-	t.log.LogDebug("Response", res)
+	log.LogDebug("streamer", "response", res)
 	err = t.setHeaders(w, res)
 	if err != nil {
 		// fail("Headers error", err)
@@ -319,19 +318,19 @@ func makeSetHeaders(conf ConfigT) func(http.ResponseWriter, *http.Response) erro
 func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log logger.T) (func(*http.Request) string, error) {
 	switch *conf.SetUserAgent {
 	case Request:
-		log.LogDebug("", "User-Agent", "request-set")
+		log.LogDebug("", "user-agent", "request-set")
 		return func(r *http.Request) string {
 			return r.UserAgent()
 		}, nil
 	case Extractor:
-		ua, err := xt.GetUserAgent()
-		log.LogDebug("", "User-Agent", ua)
+		ua, err := xt.GetUserAgent(log)
+		log.LogDebug("", "user-agent", ua)
 		return func(r *http.Request) string {
 			return ua
 		}, err
 	case Config:
 		ua := conf.UserAgent
-		log.LogDebug("", "User-Agent", ua)
+		log.LogDebug("", "user-agent", ua)
 		return func(r *http.Request) string {
 			return *ua
 		}, nil
