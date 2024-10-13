@@ -10,6 +10,20 @@ mkdir -p ${BinDir}
 rm ${BinDir}/${FilePrefix}* -rf
 cd src
 go run ../build.go ${FilePrefix}
+
 cd ../$BinDir
-md5sum -b ${FilePrefix}* >${Md5File}
+
+cat <<EOF >${Md5File}
+see changelog
+
+built w $(go version | awk '{print($3)}')
+
+<details>
+<summary>md5</summary>
+<code>
+$(md5sum -b ${FilePrefix}*)
+</code>
+</details>
+EOF
+
 cd ..
