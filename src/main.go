@@ -9,12 +9,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	app "lib/app"
-	cache "lib/cache"
-	config "lib/config"
-	extractor "lib/extractor"
-	logger "lib/logger"
-	streamer "lib/streamer"
+	app "ytproxy/app"
+	cache "ytproxy/cache"
+	config "ytproxy/config"
+	extractor "ytproxy/extractor"
+	logger "ytproxy/logger"
+	streamer "ytproxy/streamer"
 )
 
 const appVersion = "2.2.0"

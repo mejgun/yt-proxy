@@ -8,7 +8,7 @@ FilePrefix="yt-proxy"
 
 mkdir -p ${BinDir}
 rm ${BinDir}/${FilePrefix}* -rf
-cd cmd
+cd src
 go run ../build.go ${FilePrefix}
 cd ../$BinDir
 md5sum -b ${FilePrefix}* >${Md5File}

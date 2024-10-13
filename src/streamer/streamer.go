@@ -11,9 +11,9 @@ import (
 	"os"
 	"strings"
 
-	extractor "lib/extractor"
-	extractor_config "lib/extractor/config"
-	logger "lib/logger"
+	extractor "ytproxy/extractor"
+	extractor_config "ytproxy/extractor/config"
+	logger "ytproxy/logger"
 )
 
 const defaultErrorHeader = "Error-Header-"

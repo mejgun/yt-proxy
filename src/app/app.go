@@ -2,14 +2,14 @@ package app
 
 import (
 	"fmt"
-	cache "lib/cache"
-	extractor "lib/extractor"
-	extractor_config "lib/extractor/config"
-	logger "lib/logger"
-	streamer "lib/streamer"
 	"slices"
 	"strconv"
 	"sync"
+	cache "ytproxy/cache"
+	extractor "ytproxy/extractor"
+	extractor_config "ytproxy/extractor/config"
+	logger "ytproxy/logger"
+	streamer "ytproxy/streamer"
 
 	"net/http"
 	"net/url"

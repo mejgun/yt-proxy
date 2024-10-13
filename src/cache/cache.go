@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	cache_default "lib/cache/impl/default"
-	cache_empty "lib/cache/impl/empty"
-	extractor_config "lib/extractor/config"
-	logger "lib/logger"
+	cache_default "ytproxy/cache/impl/default"
+	cache_empty "ytproxy/cache/impl/empty"
+	extractor_config "ytproxy/extractor/config"
+	logger "ytproxy/logger"
 )
 
 type T interface {

@@ -1,8 +1,8 @@
 package extractor
 
 import (
-	extractor_config "lib/extractor/config"
-	logger "lib/logger"
+	extractor_config "ytproxy/extractor/config"
+	logger "ytproxy/logger"
 )
 
 func New() (*directExtractor, error) {

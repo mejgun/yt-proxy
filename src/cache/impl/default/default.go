@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	extractor_config "lib/extractor/config"
+	extractor_config "ytproxy/extractor/config"
 )
 
 func New(t time.Duration) *defaultCache {

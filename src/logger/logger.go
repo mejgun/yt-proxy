@@ -2,10 +2,10 @@ package logger
 
 import (
 	"fmt"
-	config "lib/logger/config"
-	logger_default "lib/logger/impl/default"
-	logger_empty "lib/logger/impl/empty"
-	logger_slog "lib/logger/impl/slog"
+	config "ytproxy/logger/config"
+	logger_default "ytproxy/logger/impl/default"
+	logger_empty "ytproxy/logger/impl/empty"
+	logger_slog "ytproxy/logger/impl/slog"
 )
 
 func New(conf config.ConfigT) (T, error) {

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"text/template"
 
-	extractor_config "lib/extractor/config"
-	logger "lib/logger"
+	extractor_config "ytproxy/extractor/config"
+	logger "ytproxy/logger"
 )
 
 func New(path string, mp4, m4a []string, get_user_agent string,

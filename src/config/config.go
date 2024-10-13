@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	cache "lib/cache"
-	extractor_config "lib/extractor/config"
-	logger_config "lib/logger/config"
-	streamer "lib/streamer"
+	cache "ytproxy/cache"
+	extractor_config "ytproxy/extractor/config"
+	logger_config "ytproxy/logger/config"
+	streamer "ytproxy/streamer"
 )
 
 type ConfigT struct {

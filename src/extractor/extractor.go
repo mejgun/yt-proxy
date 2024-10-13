@@ -3,10 +3,10 @@ package extractor
 import (
 	"strings"
 
-	extractor_config "lib/extractor/config"
-	extractor_default "lib/extractor/impl/default"
-	extractor_direct "lib/extractor/impl/direct"
-	logger "lib/logger"
+	extractor_config "ytproxy/extractor/config"
+	extractor_default "ytproxy/extractor/impl/default"
+	extractor_direct "ytproxy/extractor/impl/direct"
+	logger "ytproxy/logger"
 )
 
 const separator = ",,"

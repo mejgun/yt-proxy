@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	l "lib/logger/config"
+	l "ytproxy/logger/config"
 )
 
 type loggerT struct {
