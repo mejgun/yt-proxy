@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	cache "ytproxy/cache"
+	"ytproxy/cache"
 	extractor_config "ytproxy/extractor/config"
 )
 

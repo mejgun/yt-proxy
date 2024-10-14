@@ -1,3 +1,4 @@
+// Package main is entry point
 package main
 
 import (
@@ -15,9 +16,10 @@ import (
 	extractor "ytproxy/extractor"
 	logger "ytproxy/logger"
 	streamer "ytproxy/streamer"
+	"ytproxy/utils"
 )
 
-const appVersion = "2.2.0"
+const appVersion = "2.3.0"
 
 type flagsT struct {
 	version bool
@@ -25,8 +27,8 @@ type flagsT struct {
 }
 
 const (
-	NoError = iota
-	SomeError
+	noError = iota
+	someError
 )
 
 func parseCLIFlags() flagsT {
@@ -40,17 +42,17 @@ func parseCLIFlags() flagsT {
 func main() {
 	flags := parseCLIFlags()
 	if flags.version {
-		os.Stdout.WriteString(fmt.Sprintf("%s\n", appVersion))
-		os.Exit(NoError)
+		_, _ = os.Stdout.WriteString(fmt.Sprintf("%s\n", appVersion))
+		os.Exit(noError)
 	}
 	startApp(flags.config)
 }
 
-func startApp(conf_file string) {
-	conf, def, opts, log, err := readConfig(conf_file)
+func startApp(confFile string) {
+	conf, def, opts, log, err := readConfig(confFile)
 	if err != nil {
-		os.Stderr.WriteString(fmt.Sprintf("Config read error: %s\n", err))
-		os.Exit(SomeError)
+		utils.WriteError(fmt.Errorf("config read error: %s", err))
+		os.Exit(someError)
 	}
 	app := app.New(def, opts)
 
@@ -63,7 +65,7 @@ func startApp(conf_file string) {
 		app.Run(w, r, log)
 	})
 	shouldWait := make(chan confChan)
-	go signalsCatcher(conf_file, log, app, shouldWait)
+	go signalsCatcher(confFile, log, app, shouldWait)
 	httpLoop(log, conf, shouldWait)
 }
 
@@ -81,33 +83,37 @@ func httpLoop(log logger.T, conf config.ConfigT, ch <-chan confChan) {
 		log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
 		s := makeServer(conf)
 		done := make(chan struct{})
-		go startHttp(s, log, done)
+		go startHTTP(s, log, done)
 		<-ch
 		log.LogInfo("Stopping web server")
-		s.Close()
-		s.Shutdown(context.Background())
+		if err := s.Close(); err != nil {
+			log.LogInfo("Web server stopping", "error", err)
+		}
+		if err := s.Shutdown(context.Background()); err != nil {
+			log.LogInfo("Web server shutting down", "error", err)
+		}
 		<-done
 		msg := <-ch
 		if !msg.restart {
 			log.LogInfo("Web server stopped")
-			os.Exit(NoError)
+			os.Exit(noError)
 		}
 		conf = msg.cnf
 	}
 }
 
-func startHttp(s *http.Server, log logger.T, done chan<- struct{}) {
+func startHTTP(s *http.Server, log logger.T, done chan<- struct{}) {
 	if err := s.ListenAndServe(); err != http.ErrServerClosed {
 		log.LogError("HTTP server", "error", err)
 		log.Close()
-		os.Exit(SomeError)
+		os.Exit(someError)
 	}
 	done <- struct{}{}
 }
 
-func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
+func readConfig(confFile string) (config.ConfigT, app.Option, []app.Option,
 	logger.T, error) {
-	conf, err := config.Read(conf_file)
+	conf, err := config.Read(confFile)
 	if err != nil {
 		return config.ConfigT{}, app.Option{}, nil, nil, err
 	}
@@ -117,7 +123,7 @@ func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
 		return config.ConfigT{}, app.Option{}, nil, nil, err
 	}
 
-	defapp, err := getNewApp(log, config.SubConfigT{
+	defApp, err := getNewApp(log, config.SubConfigT{
 		ConfigT: config.ConfigT{
 			Streamer:           conf.Streamer,
 			Extractor:          conf.Extractor,
@@ -140,10 +146,10 @@ func readConfig(conf_file string) (config.ConfigT, app.Option, []app.Option,
 		}
 		opts = append(opts, opt)
 	}
-	return conf, defapp, opts, log, nil
+	return conf, defApp, opts, log, nil
 }
 
-func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic,
+func signalsCatcher(confFile string, log logger.T, app *app.AppLogic,
 	ch chan<- confChan) {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint,
@@ -154,13 +160,13 @@ func signalsCatcher(conf_file string, log logger.T, app *app.AppLogic,
 		switch <-sigint {
 		case syscall.SIGHUP:
 			log.LogWarning("Config reloading")
-			conf, def, opts, lognew, err := readConfig(conf_file)
+			conf, def, opts, logNew, err := readConfig(confFile)
 			if err != nil {
 				log.LogError("Config reload", "error", err)
 			} else {
 				ch <- confChan{}
-				app.ReloadConfig(lognew, def, opts)
-				log = lognew
+				app.ReloadConfig(logNew, def, opts)
+				log = logNew
 				ch <- confChan{conf, true}
 			}
 		case syscall.SIGINT:
@@ -181,26 +187,26 @@ func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
 		"Streamer",
 	}
 
-	newname := func(name string) string {
+	newName := func(name string) string {
 		return fmt.Sprintf("[%s] %s", v.Name, name)
 	}
-	nameerr := func(name string, err error) error {
-		return fmt.Errorf("%s: %s", newname(name), err)
+	nameErr := func(name string, err error) error {
+		return fmt.Errorf("%s: %s", newName(name), err)
 	}
 	xtr, err := extractor.New(v.Extractor,
-		logger.NewLayer(log, newname(texts[0])))
+		logger.NewLayer(log, newName(texts[0])))
 	if err != nil {
-		return app.Option{}, nameerr(texts[0], err)
+		return app.Option{}, nameErr(texts[0], err)
 	}
 	cch, err := cache_mux.New(v.Cache,
-		logger.NewLayer(log, newname(texts[1])))
+		logger.NewLayer(log, newName(texts[1])))
 	if err != nil {
-		return app.Option{}, nameerr(texts[1], err)
+		return app.Option{}, nameErr(texts[1], err)
 	}
 	strm, err := streamer.New(v.Streamer,
-		logger.NewLayer(log, newname(texts[2])), xtr)
+		logger.NewLayer(log, newName(texts[2])), xtr)
 	if err != nil {
-		return app.Option{}, nameerr(texts[2], err)
+		return app.Option{}, nameErr(texts[2], err)
 	}
 	return app.Option{
 		Name:               v.Name,

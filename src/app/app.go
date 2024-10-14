@@ -2,19 +2,19 @@ package app
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
+
 	cache "ytproxy/cache"
 	extractor "ytproxy/extractor"
 	extractor_config "ytproxy/extractor/config"
 	logger "ytproxy/logger"
 	streamer "ytproxy/streamer"
-
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
 )
 
 const (

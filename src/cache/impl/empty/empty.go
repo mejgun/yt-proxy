@@ -12,14 +12,14 @@ func New() *emptyCache {
 
 type emptyCache struct{}
 
-func (t *emptyCache) Add(req extractor_config.RequestT, res extractor_config.ResultT,
-	now time.Time) {
+func (t *emptyCache) Add(_ extractor_config.RequestT, _ extractor_config.ResultT,
+	_ time.Time) {
 }
 
-func (t *emptyCache) Get(req extractor_config.RequestT) (extractor_config.ResultT, bool) {
+func (t *emptyCache) Get(_ extractor_config.RequestT) (extractor_config.ResultT, bool) {
 	return extractor_config.ResultT{}, false
 }
 
-func (t *emptyCache) CleanExpired(now time.Time) []extractor_config.RequestT {
+func (t *emptyCache) CleanExpired(_ time.Time) []extractor_config.RequestT {
 	return []extractor_config.RequestT{}
 }
