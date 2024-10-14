@@ -10,11 +10,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	app "ytproxy/app"
 	cache_mux "ytproxy/cache/mux"
 	config "ytproxy/config"
 	extractor "ytproxy/extractor"
 	logger "ytproxy/logger"
+	logic "ytproxy/logic"
 	streamer "ytproxy/streamer"
 	"ytproxy/utils"
 )
@@ -54,7 +54,7 @@ func startApp(confFile string) {
 		utils.WriteError(fmt.Errorf("config read error: %s", err))
 		os.Exit(someError)
 	}
-	app := app.New(def, opts)
+	appLogic := logic.New(def, opts)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.LogInfo("Bad request", "addr", r.RemoteAddr, "url", r.RequestURI)
@@ -62,10 +62,10 @@ func startApp(confFile string) {
 		http.NotFound(w, r)
 	})
 	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
-		app.Run(w, r, log)
+		appLogic.Run(w, r, log)
 	})
 	shouldWait := make(chan confChan)
-	go signalsCatcher(confFile, log, app, shouldWait)
+	go signalsCatcher(confFile, log, appLogic, shouldWait)
 	httpLoop(log, conf, shouldWait)
 }
 
@@ -111,19 +111,19 @@ func startHTTP(s *http.Server, log logger.T, done chan<- struct{}) {
 	done <- struct{}{}
 }
 
-func readConfig(confFile string) (config.ConfigT, app.Option, []app.Option,
+func readConfig(confFile string) (config.ConfigT, logic.Option, []logic.Option,
 	logger.T, error) {
 	conf, err := config.Read(confFile)
 	if err != nil {
-		return config.ConfigT{}, app.Option{}, nil, nil, err
+		return config.ConfigT{}, logic.Option{}, nil, nil, err
 	}
 
 	log, err := logger.New(conf.Log)
 	if err != nil {
-		return config.ConfigT{}, app.Option{}, nil, nil, err
+		return config.ConfigT{}, logic.Option{}, nil, nil, err
 	}
 
-	defApp, err := getNewApp(log, config.SubConfigT{
+	defaultAppLogic, err := getNewAppLogic(log, config.SubConfigT{
 		ConfigT: config.ConfigT{
 			Streamer:           conf.Streamer,
 			Extractor:          conf.Extractor,
@@ -135,21 +135,21 @@ func readConfig(confFile string) (config.ConfigT, app.Option, []app.Option,
 		Name: "default",
 	})
 	if err != nil {
-		return config.ConfigT{}, app.Option{}, nil, nil, err
+		return config.ConfigT{}, logic.Option{}, nil, nil, err
 	}
 
-	opts := make([]app.Option, 0)
+	optionalAppLogic := make([]logic.Option, 0)
 	for _, v := range conf.SubConfig {
-		opt, err := getNewApp(log, v)
+		opt, err := getNewAppLogic(log, v)
 		if err != nil {
-			return config.ConfigT{}, app.Option{}, nil, nil, err
+			return config.ConfigT{}, logic.Option{}, nil, nil, err
 		}
-		opts = append(opts, opt)
+		optionalAppLogic = append(optionalAppLogic, opt)
 	}
-	return conf, defApp, opts, log, nil
+	return conf, defaultAppLogic, optionalAppLogic, log, nil
 }
 
-func signalsCatcher(confFile string, log logger.T, app *app.AppLogic,
+func signalsCatcher(confFile string, log logger.T, appLogic *logic.AppLogic,
 	ch chan<- confChan) {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint,
@@ -165,7 +165,7 @@ func signalsCatcher(confFile string, log logger.T, app *app.AppLogic,
 				log.LogError("Config reload", "error", err)
 			} else {
 				ch <- confChan{}
-				app.ReloadConfig(logNew, def, opts)
+				appLogic.ReloadConfig(logNew, def, opts)
 				log = logNew
 				ch <- confChan{conf, true}
 			}
@@ -174,13 +174,13 @@ func signalsCatcher(confFile string, log logger.T, app *app.AppLogic,
 		case syscall.SIGTERM:
 			log.LogWarning("Exiting")
 			ch <- confChan{}
-			app.Shutdown(log)
+			appLogic.Shutdown(log)
 			ch <- confChan{}
 		}
 	}
 }
 
-func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
+func getNewAppLogic(log logger.T, v config.SubConfigT) (logic.Option, error) {
 	texts := [3]string{
 		"Extractor",
 		"Cache",
@@ -196,19 +196,19 @@ func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
 	xtr, err := extractor.New(v.Extractor,
 		logger.NewLayer(log, newName(texts[0])))
 	if err != nil {
-		return app.Option{}, nameErr(texts[0], err)
+		return logic.Option{}, nameErr(texts[0], err)
 	}
 	cch, err := cache_mux.New(v.Cache,
 		logger.NewLayer(log, newName(texts[1])))
 	if err != nil {
-		return app.Option{}, nameErr(texts[1], err)
+		return logic.Option{}, nameErr(texts[1], err)
 	}
 	strm, err := streamer.New(v.Streamer,
 		logger.NewLayer(log, newName(texts[2])), xtr)
 	if err != nil {
-		return app.Option{}, nameErr(texts[2], err)
+		return logic.Option{}, nameErr(texts[2], err)
 	}
-	return app.Option{
+	return logic.Option{
 		Name:               v.Name,
 		Sites:              v.Sites,
 		X:                  xtr,
