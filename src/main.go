@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	app "ytproxy/app"
-	cache "ytproxy/cache"
+	cache_mux "ytproxy/cache/mux"
 	config "ytproxy/config"
 	extractor "ytproxy/extractor"
 	logger "ytproxy/logger"
@@ -192,7 +192,7 @@ func getNewApp(log logger.T, v config.SubConfigT) (app.Option, error) {
 	if err != nil {
 		return app.Option{}, nameerr(texts[0], err)
 	}
-	cch, err := cache.New(v.Cache,
+	cch, err := cache_mux.New(v.Cache,
 		logger.NewLayer(log, newname(texts[1])))
 	if err != nil {
 		return app.Option{}, nameerr(texts[1], err)

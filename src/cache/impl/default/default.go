@@ -4,8 +4,11 @@ import (
 	"sync"
 	"time"
 
+	cache "ytproxy/cache"
 	extractor_config "ytproxy/extractor/config"
 )
+
+var _ cache.T = (*defaultCache)(nil)
 
 func New(t time.Duration) *defaultCache {
 	return &defaultCache{
