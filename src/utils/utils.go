@@ -13,3 +13,10 @@ func WriteError(err error) {
 		log.Println("Cannot write error to stderr, error is", err)
 	}
 }
+
+// WriteStdoutLn prints string to stdout
+func WriteStdoutLn(str string) {
+	if _, err := os.Stdout.WriteString(fmt.Sprintf("%s\n", str)); err != nil {
+		log.Println("Cannot write to stdout, error is", err, "msg is", str)
+	}
+}
