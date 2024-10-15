@@ -1,3 +1,4 @@
+// Package streamer contains restreamer related funcs
 package streamer
 
 import (
@@ -12,27 +13,29 @@ import (
 	"strings"
 
 	extractor "ytproxy/extractor"
-	extractor_config "ytproxy/extractor/config"
 	logger "ytproxy/logger"
 )
 
 const defaultErrorHeader = "Error-Header-"
 
+// ConfigT is restreamer config
 type ConfigT struct {
 	EnableErrorHeaders   *bool          `json:"error-headers"`
 	IgnoreMissingHeaders *bool          `json:"ignore-missing-headers"`
 	IgnoreSSLErrors      *bool          `json:"ignore-ssl-errors"`
 	ErrorVideoPath       *string        `json:"error-video"`
 	ErrorAudioPath       *string        `json:"error-audio"`
-	SetUserAgent         *SetUserAgentT `json:"set-user-agent"`
+	SetUserAgent         *setUserAgentT `json:"set-user-agent"`
 	UserAgent            *string        `json:"user-agent"`
 	Proxy                *string        `json:"proxy"`
-	MinTlsVersion        *TlsVersion    `json:"min-tls-version"`
+	MinTLSVersion        *TLSVersion    `json:"min-tls-version"`
 }
 
-type TlsVersion uint16
+// TLSVersion selects restreamer minimal supported TLS version
+type TLSVersion uint16
 
-func (u *TlsVersion) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON is custom json unmarshal func, do not use directly
+func (u *TLSVersion) UnmarshalJSON(b []byte) error {
 	var (
 		s string
 		i uint16
@@ -43,30 +46,31 @@ func (u *TlsVersion) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
 	}
-	eq := func(teststring string) bool {
-		return s == teststring
+	eq := func(testString string) bool {
+		return s == testString
 	}
 	if eq("") {
 		return nil
 	}
 	for i = 0; i < math.MaxUint16; i++ {
 		if eq(tls.VersionName(i)) {
-			*u = TlsVersion(i)
+			*u = TLSVersion(i)
 			return nil
 		}
 	}
 	return fmt.Errorf("cannot unmarshal %s as TLS version", b)
 }
 
-type SetUserAgentT uint8
+type setUserAgentT uint8
 
+// How to set user agent
 const (
-	Extractor SetUserAgentT = iota
+	Extractor setUserAgentT = iota
 	Request
 	Config
 )
 
-func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
+func (u *setUserAgentT) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
@@ -85,9 +89,10 @@ func (u *SetUserAgentT) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// T is restreamer interface
 type T interface {
-	Play(http.ResponseWriter, *http.Request, extractor_config.RequestT, extractor_config.ResultT, logger.T) error
-	PlayError(http.ResponseWriter, extractor_config.RequestT, error) error
+	Play(http.ResponseWriter, *http.Request, extractor.ResultT, logger.T) error
+	PlayError(http.ResponseWriter, extractor.RequestT, error) error
 }
 
 type streamer struct {
@@ -110,6 +115,7 @@ type fileT struct {
 	contentLength int64
 }
 
+// New creates restreamer implementation
 func New(conf ConfigT, log logger.T, xt extractor.T) (T, error) {
 	var (
 		s    streamer
@@ -145,16 +151,10 @@ func New(conf ConfigT, log logger.T, xt extractor.T) (T, error) {
 func (t *streamer) Play(
 	w http.ResponseWriter,
 	req *http.Request,
-	reqst extractor_config.RequestT,
-	rest extractor_config.ResultT,
+	resT extractor.ResultT,
 	log logger.T,
 ) error {
-	// t.log.LogDebug("Streamer request", rest)
-	// fail := func(str string, err error) {
-	// 	t.log.LogError(str, err)
-	// 	t.PlayError(w, reqst, err)
-	// }
-	request, err := http.NewRequest("GET", rest.URL, nil)
+	request, err := http.NewRequest("GET", resT.URL, nil)
 	if err != nil {
 		return err
 	}
@@ -164,14 +164,16 @@ func (t *streamer) Play(
 	request.Header.Set("User-Agent", t.setStreamerUserAgent(req))
 	res, err := t.httpRequest(request)
 	if err != nil {
-		// fail("Proxying error", err)
 		return err
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.LogError("body close", "error", err)
+		}
+	}()
 	log.LogDebug("streamer", "response", res)
 	err = t.setHeaders(w, res)
 	if err != nil {
-		// fail("Headers error", err)
 		return err
 	}
 	_, err = io.Copy(w, res.Body)
@@ -181,7 +183,7 @@ func (t *streamer) Play(
 	return nil
 }
 
-func (t *streamer) PlayError(w http.ResponseWriter, req extractor_config.RequestT,
+func (t *streamer) PlayError(w http.ResponseWriter, req extractor.RequestT,
 	err error) error {
 	var file *fileT
 	if req.FORMAT == "mp4" {
@@ -197,23 +199,25 @@ func readFile(path string) (fileT, error) {
 	if err != nil {
 		return fileT{}, err
 	}
-	fileinfo, err := file.Stat()
+	fileInfo, err := file.Stat()
 	if err != nil {
 		return fileT{}, err
 	}
-	filesize := fileinfo.Size()
-	file.Close()
+	fileSize := fileInfo.Size()
+	if err := file.Close(); err != nil {
+		return fileT{}, err
+	}
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fileT{}, err
 	}
-	return fileT{content: content, contentLength: filesize}, nil
+	return fileT{content: content, contentLength: fileSize}, nil
 }
 
 func errorToHeaders(e error) ([]string, []string) {
-	splitted := strings.Split(e.Error(), "\n")
+	split := strings.Split(e.Error(), "\n")
 	filtered := make([]string, 0)
-	for _, v := range splitted {
+	for _, v := range split {
 		v := strings.TrimSpace(v)
 		if len(v) > 0 {
 			filtered = append(filtered, v)
@@ -233,12 +237,12 @@ func makeDoRequestFunc(conf ConfigT) (doRequestF, []string, error) {
 	tr := &http.Transport{}
 	logs := make([]string, 0)
 	func() {
-		mintls := uint16(*conf.MinTlsVersion)
-		tr.TLSClientConfig = &tls.Config{MinVersion: mintls}
-		if mintls > 0 {
+		minTLS := uint16(*conf.MinTLSVersion)
+		tr.TLSClientConfig = &tls.Config{MinVersion: minTLS}
+		if minTLS > 0 {
 			logs = append(logs,
 				fmt.Sprintf("streamer min TLS version set to: %s",
-					tls.VersionName(mintls)))
+					tls.VersionName(minTLS)))
 		}
 	}()
 	if *conf.IgnoreSSLErrors {
@@ -255,7 +259,7 @@ func makeDoRequestFunc(conf ConfigT) (doRequestF, []string, error) {
 		logs = append(logs, fmt.Sprintf("proxy set to '%s'", *conf.Proxy))
 		u, err := url.Parse(*conf.Proxy)
 		if err != nil {
-			return func(r *http.Request) (*http.Response, error) {
+			return func(_ *http.Request) (*http.Response, error) {
 				return &http.Response{}, nil
 			}, logs, err
 		}
@@ -272,9 +276,9 @@ func makeSendErrorVideoFunc(conf ConfigT) sendErrorFileF {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", file.contentLength))
 		w.Header().Set("Content-Type", file.contentType)
 		if *conf.EnableErrorHeaders {
-			hdrs, errs := errorToHeaders(err)
-			for i := range hdrs {
-				w.Header().Set(hdrs[i], errs[i])
+			headersList, errs := errorToHeaders(err)
+			for i := range headersList {
+				w.Header().Set(headersList[i], errs[i])
 			}
 		}
 		_, err = w.Write(file.content)
@@ -325,17 +329,17 @@ func makeSetStreamerUserAgent(conf ConfigT, xt extractor.T, log logger.T) (func(
 	case Extractor:
 		ua, err := xt.GetUserAgent(log)
 		log.LogDebug("", "user-agent", ua)
-		return func(r *http.Request) string {
+		return func(_ *http.Request) string {
 			return ua
 		}, err
 	case Config:
 		ua := conf.UserAgent
 		log.LogDebug("", "user-agent", ua)
-		return func(r *http.Request) string {
+		return func(_ *http.Request) string {
 			return *ua
 		}, nil
 	default:
-		return func(r *http.Request) string { return "" },
+		return func(_ *http.Request) string { return "" },
 			fmt.Errorf("set-streamer-user-agent func creation error. this could not happen")
 	}
 }

@@ -1,4 +1,5 @@
-package extractor
+// Package dedfaultextractor implements default (external command based) extractor
+package dedfaultextractor
 
 import (
 	"bytes"
@@ -9,12 +10,14 @@ import (
 	"sync"
 	"text/template"
 
-	extractor_config "ytproxy/extractor/config"
+	extractor "ytproxy/extractor"
 	logger "ytproxy/logger"
+	logger_mux "ytproxy/logger/mux"
 )
 
-func New(path string, mp4, m4a []string, get_user_agent string,
-	custom_options []string) (*defaultExtractor, error) {
+// New creates new default extractor implementation
+func New(path string, mp4, m4a []string, getUserAgent string,
+	customOptions []string) (extractor.T, error) {
 	var (
 		e   defaultExtractor
 		err error
@@ -38,11 +41,11 @@ func New(path string, mp4, m4a []string, get_user_agent string,
 	if err != nil {
 		return &e, err
 	}
-	e.customOptions, err = read(custom_options)
+	e.customOptions, err = read(customOptions)
 	if err != nil {
 		return &e, err
 	}
-	e.getUserAgent = get_user_agent
+	e.getUserAgent = getUserAgent
 	e.path = path
 	return &e, nil
 }
@@ -60,8 +63,8 @@ func (t *defaultExtractor) GetUserAgent(log logger.T) (string, error) {
 	return t.runCmd([]string{t.getUserAgent}, log)
 }
 
-func (t *defaultExtractor) Extract(req extractor_config.RequestT, log logger.T,
-) (extractor_config.ResultT, error) {
+func (t *defaultExtractor) Extract(req extractor.RequestT, log logger.T,
+) (extractor.ResultT, error) {
 	var (
 		buf        []string
 		bufOptions []string
@@ -88,24 +91,24 @@ func (t *defaultExtractor) Extract(req extractor_config.RequestT, log logger.T,
 		buf, err = execute(t.mp4)
 	}
 	if err != nil {
-		return extractor_config.ResultT{}, err
+		return extractor.ResultT{}, err
 	}
 	bufOptions, err = execute(t.customOptions)
 	if err != nil {
-		return extractor_config.ResultT{}, err
+		return extractor.ResultT{}, err
 	}
 	bufOptions = append(bufOptions, buf...)
 	out, err := t.runCmd(bufOptions, log)
 	if err != nil {
-		return extractor_config.ResultT{}, err
+		return extractor.ResultT{}, err
 	}
-	return extractor_config.ResultT{URL: out}, err
+	return extractor.ResultT{URL: out}, err
 }
 
 func (t *defaultExtractor) runCmd(args []string, log logger.T) (string, error) {
 	t.Lock()
 	defer t.Unlock()
-	log = logger.NewLayer(log, "Extractor")
+	log = logger_mux.NewLayer(log, "Extractor")
 	cmd := exec.Command(t.path, args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

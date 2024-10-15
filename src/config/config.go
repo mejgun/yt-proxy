@@ -1,3 +1,4 @@
+// Package config contains app config related funcs
 package config
 
 import (
@@ -7,34 +8,36 @@ import (
 	"strings"
 
 	cache "ytproxy/cache"
-	extractor_config "ytproxy/extractor/config"
-	logger_config "ytproxy/logger/config"
+	extractor "ytproxy/extractor"
+	logger "ytproxy/logger"
 	streamer "ytproxy/streamer"
 )
 
-type ConfigT struct {
-	PortInt            uint16                   `json:"port"`
-	Host               string                   `json:"host"`
-	DefaultVideoHeight uint64                   `json:"default-video-height"`
-	MaxVideoHeight     uint64                   `json:"max-video-height"`
-	Sites              []string                 `json:"sites"`
-	Streamer           streamer.ConfigT         `json:"streamer"`
-	Extractor          extractor_config.ConfigT `json:"extractor"`
-	Log                logger_config.ConfigT    `json:"log"`
-	Cache              cache.ConfigT            `json:"cache"`
-	SubConfig          []SubConfigT             `json:"sub-config"`
+// T is main app config type
+type T struct {
+	PortInt            uint16            `json:"port"`
+	Host               string            `json:"host"`
+	DefaultVideoHeight uint64            `json:"default-video-height"`
+	MaxVideoHeight     uint64            `json:"max-video-height"`
+	Sites              []string          `json:"sites"`
+	Streamer           streamer.ConfigT  `json:"streamer"`
+	Extractor          extractor.ConfigT `json:"extractor"`
+	Log                logger.ConfigT    `json:"log"`
+	Cache              cache.ConfigT     `json:"cache"`
+	SubConfig          []SubT            `json:"sub-config"`
 }
 
-type SubConfigT struct {
+// SubT is type for extra configs
+type SubT struct {
 	Name string `json:"name"`
-	ConfigT
+	T
 }
 
-func defaultConfig() ConfigT {
+func defaultConfig() T {
 	fls := false
 	tru := true
 	ext := streamer.Extractor
-	tv := streamer.TlsVersion(0)
+	tv := streamer.TLSVersion(0)
 	var s = [4]string{"corrupted.mp4",
 		"failed.m4a",
 		"Mozilla",
@@ -46,11 +49,11 @@ func defaultConfig() ConfigT {
 		"--dump-user-agent",
 	}
 	co := make([]string, 0)
-	ll := logger_config.Info
-	lo := logger_config.Stdout
+	ll := logger.Info
+	lo := logger.Stdout
 	lf := "log.txt"
 	exp := "3h"
-	return ConfigT{
+	return T{
 		PortInt:            8080,
 		Host:               "0.0.0.0",
 		DefaultVideoHeight: 720,
@@ -64,19 +67,19 @@ func defaultConfig() ConfigT {
 			SetUserAgent:         &ext,
 			UserAgent:            &s[2],
 			Proxy:                &s[3],
-			MinTlsVersion:        &tv,
+			MinTLSVersion:        &tv,
 		},
-		Extractor: extractor_config.ConfigT{
+		Extractor: extractor.ConfigT{
 			Path:          &e[0],
 			MP4:           &e[1],
 			M4A:           &e[2],
 			GetUserAgent:  &e[3],
 			CustomOptions: &co,
-			ForceHttps:    &tru,
+			ForceHTTPS:    &tru,
 		},
-		Log: logger_config.ConfigT{
+		Log: logger.ConfigT{
 			Level:    &ll,
-			Json:     &fls,
+			JSON:     &fls,
 			Output:   &lo,
 			FileName: &lf,
 		},
@@ -87,7 +90,7 @@ func defaultConfig() ConfigT {
 }
 
 // add second config options to first
-func appendConfig(src ConfigT, dst ConfigT) ConfigT {
+func appendConfig(src T, dst T) T {
 	// general options
 	if dst.PortInt == 0 {
 		dst.PortInt = src.PortInt
@@ -126,8 +129,8 @@ func appendConfig(src ConfigT, dst ConfigT) ConfigT {
 	if dst.Streamer.Proxy == nil {
 		dst.Streamer.Proxy = src.Streamer.Proxy
 	}
-	if dst.Streamer.MinTlsVersion == nil {
-		dst.Streamer.MinTlsVersion = src.Streamer.MinTlsVersion
+	if dst.Streamer.MinTLSVersion == nil {
+		dst.Streamer.MinTLSVersion = src.Streamer.MinTLSVersion
 	}
 	// extractor
 	if dst.Extractor.Path == nil {
@@ -145,15 +148,15 @@ func appendConfig(src ConfigT, dst ConfigT) ConfigT {
 	if dst.Extractor.CustomOptions == nil {
 		dst.Extractor.CustomOptions = src.Extractor.CustomOptions
 	}
-	if dst.Extractor.ForceHttps == nil {
-		dst.Extractor.ForceHttps = src.Extractor.ForceHttps
+	if dst.Extractor.ForceHTTPS == nil {
+		dst.Extractor.ForceHTTPS = src.Extractor.ForceHTTPS
 	}
 	// logger
 	if dst.Log.Level == nil {
 		dst.Log.Level = src.Log.Level
 	}
-	if dst.Log.Json == nil {
-		dst.Log.Json = src.Log.Json
+	if dst.Log.JSON == nil {
+		dst.Log.JSON = src.Log.JSON
 	}
 	if dst.Log.Output == nil {
 		dst.Log.Output = src.Log.Output
@@ -168,28 +171,29 @@ func appendConfig(src ConfigT, dst ConfigT) ConfigT {
 	return dst
 }
 
-func Read(path string) (ConfigT, error) {
-	var c ConfigT
+// Read reads config file
+func Read(path string) (T, error) {
+	var c T
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return c, err
 	}
 	func() {
-		strs := make([]string, 0)
+		splitStrings := make([]string, 0)
 		for _, s := range strings.Split(string(b[:]), "\n") {
 			s = strings.TrimSpace(s)
 			if !strings.HasPrefix(s, "//") {
-				strs = append(strs, s)
+				splitStrings = append(splitStrings, s)
 			}
 		}
-		str := strings.Join(strs, "")
+		str := strings.Join(splitStrings, "")
 		b = b[:0]
 		b = []byte(str)
 
 	}()
 	err = json.Unmarshal(b, &c)
 	if err != nil {
-		wraperr := func(offset int64) error {
+		wrapErr := func(offset int64) error {
 			l, h := offset-30, offset+20
 			pre, post := "…", "…"
 			if l < 0 {
@@ -204,9 +208,9 @@ func Read(path string) (ConfigT, error) {
 		}
 		switch e := err.(type) {
 		case *json.UnmarshalTypeError:
-			err = wraperr(e.Offset)
+			err = wrapErr(e.Offset)
 		case *json.SyntaxError:
-			err = wraperr(e.Offset)
+			err = wrapErr(e.Offset)
 		}
 		return c, err
 	}
@@ -218,7 +222,7 @@ func Read(path string) (ConfigT, error) {
 		if len(v.Sites) == 0 {
 			return c, fmt.Errorf("sub-config sites empty")
 		}
-		c.SubConfig[k].ConfigT = appendConfig(c, v.ConfigT)
+		c.SubConfig[k].T = appendConfig(c, v.T)
 	}
 	return c, nil
 }

@@ -1,29 +1,29 @@
-package cache
+// Package defaultcache implements in-memory links cache
+package defaultcache
 
 import (
 	"sync"
 	"time"
 
-	"ytproxy/cache"
-	extractor_config "ytproxy/extractor/config"
+	cache "ytproxy/cache"
+	extractor "ytproxy/extractor"
 )
 
-var _ cache.T = (*defaultCache)(nil)
-
-func New(t time.Duration) *defaultCache {
+// New creates default cache instance
+func New(t time.Duration) cache.T {
 	return &defaultCache{
-		cache:      make(map[extractor_config.RequestT]extractor_config.ResultT),
+		cache:      make(map[extractor.RequestT]extractor.ResultT),
 		expireTime: t,
 	}
 }
 
 type defaultCache struct {
 	sync.Mutex
-	cache      map[extractor_config.RequestT]extractor_config.ResultT
+	cache      map[extractor.RequestT]extractor.ResultT
 	expireTime time.Duration
 }
 
-func (t *defaultCache) Add(req extractor_config.RequestT, res extractor_config.ResultT,
+func (t *defaultCache) Add(req extractor.RequestT, res extractor.ResultT,
 	now time.Time) {
 	res.Expire = now.Add(t.expireTime)
 	t.Lock()
@@ -31,15 +31,15 @@ func (t *defaultCache) Add(req extractor_config.RequestT, res extractor_config.R
 	t.Unlock()
 }
 
-func (t *defaultCache) Get(req extractor_config.RequestT) (extractor_config.ResultT, bool) {
+func (t *defaultCache) Get(req extractor.RequestT) (extractor.ResultT, bool) {
 	t.Lock()
 	defer t.Unlock()
 	v, ok := t.cache[req]
 	return v, ok
 }
 
-func (t *defaultCache) CleanExpired(now time.Time) []extractor_config.RequestT {
-	deleted := make([]extractor_config.RequestT, 0)
+func (t *defaultCache) CleanExpired(now time.Time) []extractor.RequestT {
+	deleted := make([]extractor.RequestT, 0)
 	t.Lock()
 	for k, v := range t.cache {
 		if v.Expire.Before(now) {

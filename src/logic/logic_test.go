@@ -39,7 +39,7 @@ func TestRemoveHttp(t *testing.T) {
 		{link: "http://www.youtu.be/", want: "www.youtu.be/"},
 		{link: "http:/www.youtu.be/", want: "www.youtu.be/"},
 	} {
-		if r := remove_http(v.link); r != v.want {
+		if r := removeHTTP(v.link); r != v.want {
 			t.Error("For", v.link, "expected", v.want, "got", r)
 		}
 	}
@@ -55,7 +55,7 @@ func TestParseHost(t *testing.T) {
 		{link: "www.yyy.youtu.be/", want: "www.yyy.youtu.be"},
 		{link: "youtu.be", want: "youtu.be"},
 	} {
-		if r, err := parseUrlHost(v.link); r != v.want || err != nil {
+		if r, err := parseURLHost(v.link); r != v.want || err != nil {
 			t.Error("For", v.link, "expected", v.want, "got", r, err)
 		}
 	}

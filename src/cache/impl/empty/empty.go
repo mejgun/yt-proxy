@@ -1,25 +1,28 @@
-package cache
+// Package emptycache implements dummy cache
+package emptycache
 
 import (
 	"time"
 
-	extractor_config "ytproxy/extractor/config"
+	cache "ytproxy/cache"
+	extractor "ytproxy/extractor"
 )
 
-func New() *emptyCache {
+// New creates dummy cache instance
+func New() cache.T {
 	return &emptyCache{}
 }
 
 type emptyCache struct{}
 
-func (t *emptyCache) Add(_ extractor_config.RequestT, _ extractor_config.ResultT,
+func (t *emptyCache) Add(_ extractor.RequestT, _ extractor.ResultT,
 	_ time.Time) {
 }
 
-func (t *emptyCache) Get(_ extractor_config.RequestT) (extractor_config.ResultT, bool) {
-	return extractor_config.ResultT{}, false
+func (t *emptyCache) Get(_ extractor.RequestT) (extractor.ResultT, bool) {
+	return extractor.ResultT{}, false
 }
 
-func (t *emptyCache) CleanExpired(_ time.Time) []extractor_config.RequestT {
-	return []extractor_config.RequestT{}
+func (t *emptyCache) CleanExpired(_ time.Time) []extractor.RequestT {
+	return []extractor.RequestT{}
 }

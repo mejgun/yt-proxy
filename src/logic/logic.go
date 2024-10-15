@@ -1,3 +1,4 @@
+// Package logic implements apps client serving logic
 package logic
 
 import (
@@ -12,8 +13,8 @@ import (
 
 	cache "ytproxy/cache"
 	extractor "ytproxy/extractor"
-	extractor_config "ytproxy/extractor/config"
 	logger "ytproxy/logger"
+	logger_mux "ytproxy/logger/mux"
 	streamer "ytproxy/streamer"
 )
 
@@ -31,12 +32,14 @@ type app struct {
 	maxVideoHeight     uint64
 }
 
+// AppLogic is logic instance
 type AppLogic struct {
 	mu         sync.RWMutex
 	defaultApp app
 	appList    []app
 }
 
+// Option is mini app, that serving selected sites
 type Option struct {
 	Name               string
 	Sites              []string
@@ -47,6 +50,7 @@ type Option struct {
 	MaxVideoHeight     uint64
 }
 
+// New creates app logic instance
 func New(def Option, opts []Option) *AppLogic {
 	var t AppLogic
 	t.set(def, opts)
@@ -79,7 +83,7 @@ func (t *AppLogic) set(def Option, opts []Option) {
 }
 
 func (t *AppLogic) selectApp(rawURL string) (app, error) {
-	host, err := parseUrlHost(rawURL)
+	host, err := parseURLHost(rawURL)
 	if err == nil {
 		for _, v := range t.appList {
 			if slices.Contains(v.sites, host) {
@@ -93,59 +97,60 @@ func (t *AppLogic) selectApp(rawURL string) (app, error) {
 	return app{}, fmt.Errorf("host %s did not match any sites in config or sub-configs", host)
 }
 
-func parseUrlHost(rawURL string) (string, error) {
+func parseURLHost(rawURL string) (string, error) {
 	u, err := url.Parse("https://" + rawURL)
 	return u.Host, err
 }
 
+// Run serves single client
 func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request, log logger.T) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	log = logger.NewLayer(log, fmt.Sprintf("App %s", r.RemoteAddr))
+	log = logger_mux.NewLayer(log, fmt.Sprintf("App %s", r.RemoteAddr))
 	log.LogInfo("Play request", "url", r.RequestURI, "full", r)
 	defer log.LogInfo("Player disconnected")
 	now := time.Now()
 	link, height, format := parseQuery(r.RequestURI)
-	resapp, err := t.selectApp(link)
+	miniApp, err := t.selectApp(link)
 	if err != nil {
 		log.LogWarning("", "error", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	resapp_log := logger.NewLayer(log, fmt.Sprintf("[%s]", resapp.name))
-	printExpired := func(links []extractor_config.RequestT) {
+	miniAppLog := logger_mux.NewLayer(log, fmt.Sprintf("[%s]", miniApp.name))
+	printExpired := func(links []extractor.RequestT) {
 		if len(links) > 0 {
-			resapp_log.LogDebug("Expired", "links", links)
+			miniAppLog.LogDebug("Expired", "links", links)
 		}
 	}
-	req := resapp.fixRequest(link, height, format)
-	log.LogInfo("", "req", req, "app", resapp.name)
-	if res, ok, expired := resapp.cacheCheck(req, now); ok {
+	req := miniApp.fixRequest(link, height, format)
+	log.LogInfo("", "req", req, "app", miniApp.name)
+	if res, ok, expired := miniApp.cacheCheck(req, now); ok {
 		printExpired(expired)
-		resapp_log.LogDebug("Already cached", "link", res)
-		resapp.play(w, r, req, res, resapp_log)
+		miniAppLog.LogDebug("Already cached", "link", res)
+		miniApp.play(w, r, req, res, miniAppLog)
 	} else {
 		printExpired(expired)
-		res, err := resapp.extractor.Extract(req, resapp_log)
+		res, err := miniApp.extractor.Extract(req, miniAppLog)
 		if err != nil {
-			resapp_log.LogError("URL extract", "error", err)
-			resapp.playError(w, req, err, resapp_log)
+			miniAppLog.LogError("URL extract", "error", err)
+			miniApp.playError(w, req, err, miniAppLog)
 			return
 		}
-		resapp_log.LogDebug("Extractor returned", "link", res)
-		resapp.cacheAdd(req, res, now, resapp_log)
-		resapp.play(w, r, req, res, resapp_log)
+		miniAppLog.LogDebug("Extractor returned", "link", res)
+		miniApp.cacheAdd(req, res, now, miniAppLog)
+		miniApp.play(w, r, req, res, miniAppLog)
 	}
 }
 
 func (t *app) play(
 	w http.ResponseWriter,
 	r *http.Request,
-	req extractor_config.RequestT,
-	res extractor_config.ResultT,
+	req extractor.RequestT,
+	res extractor.ResultT,
 	log logger.T,
 ) {
-	if err := t.streamer.Play(w, r, req, res, log); err != nil {
+	if err := t.streamer.Play(w, r, res, log); err != nil {
 		log.LogError("Restream", "error", err)
 		t.playError(w, req, err, log)
 	}
@@ -153,24 +158,24 @@ func (t *app) play(
 
 func (t *app) playError(
 	w http.ResponseWriter,
-	req extractor_config.RequestT,
+	req extractor.RequestT,
 	err error,
 	log logger.T,
 ) {
 	if err := t.streamer.PlayError(w, req, err); err != nil {
-		log.LogError("Error occured while playing error video", "error", err)
+		log.LogError("Error occurred while playing error video", "error", err)
 	}
 }
 
-func (t *app) cacheCheck(req extractor_config.RequestT, now time.Time) (extractor_config.ResultT, bool, []extractor_config.RequestT) {
+func (t *app) cacheCheck(req extractor.RequestT, now time.Time) (extractor.ResultT, bool, []extractor.RequestT) {
 	expired := t.cache.CleanExpired(now)
 	res, ok := t.cache.Get(req)
 	return res, ok, expired
 }
 
 func (t *app) cacheAdd(
-	req extractor_config.RequestT,
-	res extractor_config.ResultT,
+	req extractor.RequestT,
+	res extractor.ResultT,
 	now time.Time,
 	log logger.T,
 ) {
@@ -178,7 +183,7 @@ func (t *app) cacheAdd(
 	t.cache.Add(req, res, now)
 }
 
-func remove_http(url string) string {
+func removeHTTP(url string) string {
 	url = strings.TrimPrefix(url, "http:/")
 	url = strings.TrimPrefix(url, "https:/")
 	url = strings.TrimLeft(url, "/")
@@ -187,14 +192,14 @@ func remove_http(url string) string {
 
 func parseQuery(query string) (string, uint64, string) {
 	query = strings.TrimSpace(strings.TrimPrefix(query, "/play/"))
-	splitted := strings.Split(query, "?/?")
-	link := remove_http(splitted[0])
+	split := strings.Split(query, "?/?")
+	link := removeHTTP(split[0])
 	format := defaultVideoFormat
 	var height uint64
-	if len(splitted) != 2 {
+	if len(split) != 2 {
 		return link, 0, format
 	}
-	tOpts, tErr := url.ParseQuery(splitted[1])
+	tOpts, tErr := url.ParseQuery(split[1])
 	if tErr == nil {
 		if tvh, ok := tOpts["vh"]; ok {
 			height, _ = strconv.ParseUint(tvh[0], 10, 64)
@@ -209,7 +214,7 @@ func parseQuery(query string) (string, uint64, string) {
 
 }
 
-func (t *app) fixRequest(link string, height uint64, format string) extractor_config.RequestT {
+func (t *app) fixRequest(link string, height uint64, format string) extractor.RequestT {
 	var (
 		h   string
 		toS = func(d uint64) string {
@@ -224,24 +229,30 @@ func (t *app) fixRequest(link string, height uint64, format string) extractor_co
 	default:
 		h = toS(height)
 	}
-	return extractor_config.RequestT{
+	return extractor.RequestT{
 		URL:    link,
 		HEIGHT: h,
 		FORMAT: format,
 	}
 }
 
-func (t *AppLogic) Shutdown(log logger.T) {
+// Shutdown stops serving clients and closes passed logger
+func (t *AppLogic) Shutdown(log logger.T) error {
 	t.mu.Lock() // locking app forever
 	log.LogInfo("Exiting")
-	log.Close()
+	return log.Close()
 }
 
-func (t *AppLogic) ReloadConfig(log logger.T, def Option, opts []Option) {
+// ReloadConfig restart serving clients and closes old logger
+func (t *AppLogic) ReloadConfig(logOld, logNew logger.T, def Option,
+	opts []Option) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	log.LogInfo("Reloading app")
-	log.Close()
+	logOld.LogInfo("Reloading app")
+	if err := logOld.Close(); err != nil {
+		return err
+	}
 	t.set(def, opts)
-	log.LogInfo("Reloading complete")
+	logNew.LogInfo("Reloading complete")
+	return nil
 }

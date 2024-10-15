@@ -1,65 +1,90 @@
+// Package logger contains logger interface type and logger constructor config
 package logger
 
 import (
+	"encoding/json"
 	"fmt"
-	config "ytproxy/logger/config"
-	logger_default "ytproxy/logger/impl/default"
-	logger_empty "ytproxy/logger/impl/empty"
-	logger_slog "ytproxy/logger/impl/slog"
 )
 
-func New(conf config.ConfigT) (T, error) {
-	if *conf.Level == config.Nothing {
-		return logger_empty.New()
-	}
-	if *conf.Json {
-		return logger_slog.New(conf)
-	} else {
-		return logger_default.New(conf)
-	}
-}
-
+// T is logger interface type
 type T interface {
 	LogError(string, ...any)
 	LogWarning(string, ...any)
 	LogDebug(string, ...any)
 	LogInfo(string, ...any)
-	Close()
+	Close() error
 }
 
-type loggerLayer struct {
-	impl        T
-	logger_name string
+// ConfigT is logger constructor config
+type ConfigT struct {
+	Level    *LevelT  `json:"level"`
+	JSON     *bool    `json:"json"`
+	Output   *OutputT `json:"output"`
+	FileName *string  `json:"filename"`
 }
 
-func NewLayer(impl T, name_str string) T {
-	return &loggerLayer{
-		impl:        impl,
-		logger_name: name_str,
+// LevelT is logger level
+type LevelT uint8
+
+// logger levels
+const (
+	Debug LevelT = iota
+	Info
+	Warning
+	Error
+	Nothing
+)
+
+// UnmarshalJSON for logger level json parsing, do not use directly
+func (l *LevelT) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
 	}
-}
-
-func (t *loggerLayer) f(s string) string {
 	switch s {
-	case "":
-		return t.logger_name
+	case "debug":
+		*l = Debug
+	case "info":
+		*l = Info
+	case "warning":
+		*l = Warning
+	case "error":
+		*l = Error
+	case "nothing":
+		*l = Nothing
 	default:
-		return fmt.Sprintf("%s. %s", t.logger_name, s)
+		return fmt.Errorf("cannot unmarshal %s as log level", b)
 	}
+	return nil
 }
 
-func (t *loggerLayer) LogError(s string, i ...any) {
-	t.impl.LogError(t.f(s), i...)
-}
-func (t *loggerLayer) LogWarning(s string, i ...any) {
-	t.impl.LogWarning(t.f(s), i...)
-}
-func (t *loggerLayer) LogDebug(s string, i ...any) {
-	t.impl.LogDebug(t.f(s), i...)
-}
-func (t *loggerLayer) LogInfo(s string, i ...any) {
-	t.impl.LogInfo(t.f(s), i...)
-}
-func (t *loggerLayer) Close() {
-	t.impl.Close()
+// OutputT select log destination
+type OutputT uint8
+
+// logger destination
+const (
+	Stdout OutputT = iota
+	File
+	Both
+)
+
+// UnmarshalJSON do not use directly
+func (o *OutputT) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+	switch s {
+	case "stdout":
+		*o = Stdout
+	case "file":
+		*o = File
+	case "both":
+		*o = Both
+	default:
+		return fmt.Errorf("cannot unmarshal %s as log output", b)
+	}
+	return nil
 }

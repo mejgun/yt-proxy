@@ -1,4 +1,6 @@
-package logger
+// Package defaultlogger implements default logger
+// that prints to stdout/file and human readable
+package defaultlogger
 
 import (
 	"fmt"
@@ -7,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	l "ytproxy/logger/config"
+	l "ytproxy/logger"
 )
 
 type loggerT struct {
@@ -19,17 +21,17 @@ type loggerT struct {
 
 func (t *loggerT) print(str string, s string, args []any) {
 	var (
-		fmtstr string
-		arglen = len(args)
-		k      int
+		formatString string
+		argsLen      = len(args)
+		k            int
 	)
 	add := func(a string) {
 		if len(a) > 0 {
-			fmtstr = fmt.Sprintf("%s %s", fmtstr, a)
+			formatString = fmt.Sprintf("%s %s", formatString, a)
 		}
 	}
-	for k < arglen {
-		if k+1 < arglen {
+	for k < argsLen {
+		if k+1 < argsLen {
 			add(fmt.Sprintf("%s:%+v", args[k], args[k+1]))
 			k = k + 2
 		} else {
@@ -37,7 +39,7 @@ func (t *loggerT) print(str string, s string, args []any) {
 			k++
 		}
 	}
-	t.lgr.Println(fmt.Sprintf("%-7s %s.", str, s) + fmtstr)
+	t.lgr.Println(fmt.Sprintf("%-7s %s.", str, s) + formatString)
 }
 
 func (t *loggerT) checkAndPrint(lvl l.LevelT, str string, s string, i []any) {
@@ -68,19 +70,23 @@ func (t *loggerT) LogInfo(s string, i ...any) {
 	t.checkAndPrint(l.Info, "INFO", s, i)
 }
 
-func (t *loggerT) Close() {
+func (t *loggerT) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for _, v := range t.outputs {
-		v.Close()
+		if err := v.Close(); err != nil {
+			return err
+		}
 	}
 	t.lgr = log.Default()
+	return nil
 }
 
-func New(conf l.ConfigT) (*loggerT, error) {
+// New creates default logger implementation
+func New(conf l.ConfigT) (l.T, error) {
 	var (
 		logger loggerT
-		lgr    *log.Logger = log.Default()
+		lgr    = log.Default()
 	)
 	open := func() (*os.File, error) {
 		return os.OpenFile(

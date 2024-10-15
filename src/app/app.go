@@ -11,8 +11,9 @@ import (
 
 	cache_mux "ytproxy/cache/mux"
 	config "ytproxy/config"
-	extractor "ytproxy/extractor"
+	extractor_mux "ytproxy/extractor/mux"
 	logger "ytproxy/logger"
+	logger_mux "ytproxy/logger/mux"
 	logic "ytproxy/logic"
 	streamer "ytproxy/streamer"
 )
@@ -39,16 +40,16 @@ func Run(confFile string) error {
 	return httpLoop(log, conf, shouldWait)
 }
 
-func makeServer(conf config.ConfigT) *http.Server {
+func makeServer(conf config.T) *http.Server {
 	return &http.Server{Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt)}
 }
 
 type confChan struct {
-	cnf     config.ConfigT
+	cnf     config.T
 	restart bool
 }
 
-func httpLoop(log logger.T, conf config.ConfigT, ch <-chan confChan) error {
+func httpLoop(log logger.T, conf config.T, ch <-chan confChan) error {
 	for {
 		log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
 		s := makeServer(conf)
@@ -77,27 +78,34 @@ func httpLoop(log logger.T, conf config.ConfigT, ch <-chan confChan) error {
 func startHTTP(s *http.Server, log logger.T, done chan<- error) {
 	if err := s.ListenAndServe(); err != http.ErrServerClosed {
 		log.LogError("HTTP server", "error", err)
-		log.Close()
-		done <- fmt.Errorf("cannot close HTTP server, error: %s", err)
+		if logErr := log.Close(); logErr != nil {
+			done <- fmt.Errorf(
+				"cannot close HTTP server, error: %s, and cannot close log file: %s",
+				err, logErr)
+		} else {
+			done <- fmt.Errorf("cannot close HTTP server, error: %s", err)
+		}
 	} else {
 		done <- nil
 	}
 }
 
-func readConfig(confFile string) (config.ConfigT, logic.Option, []logic.Option,
+func readConfig(confFile string) (config.T, logic.Option, []logic.Option,
 	logger.T, error) {
 	conf, err := config.Read(confFile)
 	if err != nil {
-		return config.ConfigT{}, logic.Option{}, nil, nil, err
+		return config.T{}, logic.Option{}, nil, nil, err
 	}
 
-	log, err := logger.New(conf.Log)
+	log,
+		err := logger_mux.New(conf.Log)
 	if err != nil {
-		return config.ConfigT{}, logic.Option{}, nil, nil, err
+		return config.T{}, logic.Option{}, nil, nil, err
 	}
 
-	defaultAppLogic, err := getNewAppLogic(log, config.SubConfigT{
-		ConfigT: config.ConfigT{
+	defaultAppLogic,
+		err := getNewAppLogic(log, config.SubT{
+		T: config.T{
 			Streamer:           conf.Streamer,
 			Extractor:          conf.Extractor,
 			Cache:              conf.Cache,
@@ -108,18 +116,22 @@ func readConfig(confFile string) (config.ConfigT, logic.Option, []logic.Option,
 		Name: "default",
 	})
 	if err != nil {
-		return config.ConfigT{}, logic.Option{}, nil, nil, err
+		return config.T{}, logic.Option{}, nil, nil, err
 	}
 
 	optionalAppLogic := make([]logic.Option, 0)
 	for _, v := range conf.SubConfig {
 		opt, err := getNewAppLogic(log, v)
 		if err != nil {
-			return config.ConfigT{}, logic.Option{}, nil, nil, err
+			return config.T{}, logic.Option{}, nil, nil, err
 		}
 		optionalAppLogic = append(optionalAppLogic, opt)
 	}
-	return conf, defaultAppLogic, optionalAppLogic, log, nil
+	return conf,
+		defaultAppLogic,
+		optionalAppLogic,
+		log,
+		nil
 }
 
 func signalsCatcher(confFile string, log logger.T, appLogic *logic.AppLogic,
@@ -138,22 +150,28 @@ func signalsCatcher(confFile string, log logger.T, appLogic *logic.AppLogic,
 				log.LogError("Config reload", "error", err)
 			} else {
 				ch <- confChan{}
-				appLogic.ReloadConfig(logNew, def, opts)
-				log = logNew
-				ch <- confChan{conf, true}
+				if err := appLogic.ReloadConfig(log, logNew, def, opts); err != nil {
+					log.LogError("log file close", "error", err)
+					ch <- confChan{conf, false}
+				} else {
+					log = logNew
+					ch <- confChan{conf, true}
+				}
 			}
 		case syscall.SIGINT:
 			fallthrough
 		case syscall.SIGTERM:
 			log.LogWarning("Exiting")
 			ch <- confChan{}
-			appLogic.Shutdown(log)
+			if err := appLogic.Shutdown(log); err != nil {
+				log.LogError("log file close", "error", err)
+			}
 			ch <- confChan{}
 		}
 	}
 }
 
-func getNewAppLogic(log logger.T, v config.SubConfigT) (logic.Option, error) {
+func getNewAppLogic(log logger.T, v config.SubT) (logic.Option, error) {
 	texts := [3]string{
 		"Extractor",
 		"Cache",
@@ -166,28 +184,32 @@ func getNewAppLogic(log logger.T, v config.SubConfigT) (logic.Option, error) {
 	nameErr := func(name string, err error) error {
 		return fmt.Errorf("%s: %s", newName(name), err)
 	}
-	_extractor, err := extractor.New(v.Extractor,
-		logger.NewLayer(log, newName(texts[0])))
+	_extractor,
+		err := extractor_mux.New(v.Extractor,
+		logger_mux.NewLayer(log, newName(texts[0])))
 	if err != nil {
 		return logic.Option{}, nameErr(texts[0], err)
 	}
-	_cache, err := cache_mux.New(v.Cache,
-		logger.NewLayer(log, newName(texts[1])))
+	_cache,
+		err := cache_mux.New(v.Cache,
+		logger_mux.NewLayer(log, newName(texts[1])))
 	if err != nil {
 		return logic.Option{}, nameErr(texts[1], err)
 	}
-	_streamer, err := streamer.New(v.Streamer,
-		logger.NewLayer(log, newName(texts[2])), _extractor)
+	_streamer,
+		err := streamer.New(v.Streamer,
+		logger_mux.NewLayer(log, newName(texts[2])), _extractor)
 	if err != nil {
 		return logic.Option{}, nameErr(texts[2], err)
 	}
 	return logic.Option{
-		Name:               v.Name,
-		Sites:              v.Sites,
-		X:                  _extractor,
-		S:                  _streamer,
-		C:                  _cache,
-		DefaultVideoHeight: v.DefaultVideoHeight,
-		MaxVideoHeight:     v.MaxVideoHeight,
-	}, nil
+			Name:               v.Name,
+			Sites:              v.Sites,
+			X:                  _extractor,
+			S:                  _streamer,
+			C:                  _cache,
+			DefaultVideoHeight: v.DefaultVideoHeight,
+			MaxVideoHeight:     v.MaxVideoHeight,
+		},
+		nil
 }

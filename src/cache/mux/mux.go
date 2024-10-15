@@ -1,4 +1,5 @@
-package cache
+// Package cachemux contains cache constructor
+package cachemux
 
 import (
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	logger "ytproxy/logger"
 )
 
+// New creates selected cache interface
 func New(conf cache.ConfigT, log logger.T) (cache.T, error) {
 	t, err := time.ParseDuration(*conf.ExpireTime)
 	if err != nil {

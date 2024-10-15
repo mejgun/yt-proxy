@@ -1,17 +1,20 @@
+// Package cache contains cache interface and config
 package cache
 
 import (
 	"time"
 
-	extractor_config "ytproxy/extractor/config"
+	extractor "ytproxy/extractor"
 )
 
+// T is cache interface
 type T interface {
-	Add(extractor_config.RequestT, extractor_config.ResultT, time.Time)
-	Get(extractor_config.RequestT) (extractor_config.ResultT, bool)
-	CleanExpired(time.Time) []extractor_config.RequestT
+	Add(extractor.RequestT, extractor.ResultT, time.Time)
+	Get(extractor.RequestT) (extractor.ResultT, bool)
+	CleanExpired(time.Time) []extractor.RequestT
 }
 
+// ConfigT is constructor config
 type ConfigT struct {
 	ExpireTime *string `json:"expire-time"`
 }

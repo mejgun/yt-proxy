@@ -1,69 +1,36 @@
+// Package extractor contains extractor interface and related types
 package extractor
 
 import (
-	"strings"
-
-	extractor_config "ytproxy/extractor/config"
-	extractor_default "ytproxy/extractor/impl/default"
-	extractor_direct "ytproxy/extractor/impl/direct"
+	"time"
 	logger "ytproxy/logger"
 )
 
-const separator = ",,"
-
+// T is extractor interface
 type T interface {
-	Extract(extractor_config.RequestT, logger.T) (extractor_config.ResultT, error)
+	Extract(RequestT, logger.T) (ResultT, error)
 	GetUserAgent(logger.T) (string, error)
 }
 
-func New(c extractor_config.ConfigT, log logger.T) (T, error) {
-	var (
-		ext layer
-		err error
-	)
-	ext.force_http = *c.ForceHttps
-	if ext.force_http {
-		log.LogDebug("", "force-http", true)
-	}
-	ext.impl, err = real_new(c)
-	return &ext, err
+// ConfigT is constructor config type
+type ConfigT struct {
+	Path          *string   `json:"path"`
+	MP4           *string   `json:"mp4"`
+	M4A           *string   `json:"m4a"`
+	GetUserAgent  *string   `json:"get-user-agent"`
+	CustomOptions *[]string `json:"custom-options"`
+	ForceHTTPS    *bool     `json:"force-https"`
 }
 
-type layer struct {
-	impl       T
-	force_http bool
+// ResultT is extractor's result type
+type ResultT struct {
+	URL    string
+	Expire time.Time
 }
 
-func (t *layer) Extract(req extractor_config.RequestT, log logger.T) (extractor_config.ResultT, error) {
-	if t.force_http {
-		req.URL = "https://" + req.URL
-	}
-	return t.impl.Extract(req, log)
-}
-
-func (t *layer) GetUserAgent(log logger.T) (string, error) {
-	return t.impl.GetUserAgent(log)
-}
-
-func real_new(c extractor_config.ConfigT) (T, error) {
-	switch *c.Path {
-	case "direct":
-		return extractor_direct.New()
-	default:
-		co := make([]string, 0)
-		for _, v := range *c.CustomOptions {
-			co = append(co, split(v)...)
-		}
-		return extractor_default.New(
-			*c.Path,
-			split(*c.MP4),
-			split(*c.M4A),
-			*c.GetUserAgent,
-			co,
-		)
-	}
-}
-
-func split(s string) []string {
-	return strings.Split(s, separator)
+// RequestT is request type for extractor
+type RequestT struct {
+	URL    string
+	HEIGHT string
+	FORMAT string
 }

@@ -1,4 +1,5 @@
-package logger
+// Package slogger implements json formatted logger
+package slogger
 
 import (
 	"io"
@@ -6,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	l "ytproxy/logger/config"
+	l "ytproxy/logger"
 )
 
 type loggerT struct {
@@ -37,16 +38,20 @@ func (t *loggerT) LogInfo(s string, i ...any) {
 	t.lgr.Info(s, i...)
 }
 
-func (t *loggerT) Close() {
+func (t *loggerT) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for _, v := range t.outputs {
-		v.Close()
+		if err := v.Close(); err != nil {
+			return err
+		}
 	}
 	t.lgr = slog.Default()
+	return nil
 }
 
-func New(conf l.ConfigT) (*loggerT, error) {
+// New creates json formatted logger implementation
+func New(conf l.ConfigT) (l.T, error) {
 	open := func() (*os.File, error) {
 		return os.OpenFile(
 			*conf.FileName,
