@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	cache "ytproxy/cache"
@@ -34,7 +33,6 @@ type app struct {
 
 // AppLogic is logic instance
 type AppLogic struct {
-	mu         sync.RWMutex
 	defaultApp app
 	appList    []app
 }
@@ -104,8 +102,6 @@ func parseURLHost(rawURL string) (string, error) {
 
 // Run serves single client
 func (t *AppLogic) Run(w http.ResponseWriter, r *http.Request, log logger.T) {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
 	log = logger_mux.NewLayer(log, fmt.Sprintf("App %s", r.RemoteAddr))
 	log.LogInfo("Play request", "url", r.RequestURI, "full", r)
 	defer log.LogInfo("Player disconnected")
@@ -234,25 +230,4 @@ func (t *app) fixRequest(link string, height uint64, format string) extractor.Re
 		HEIGHT: h,
 		FORMAT: format,
 	}
-}
-
-// Shutdown stops serving clients and closes passed logger
-func (t *AppLogic) Shutdown(log logger.T) error {
-	t.mu.Lock() // locking app forever
-	log.LogInfo("Exiting")
-	return log.Close()
-}
-
-// ReloadConfig restart serving clients and closes old logger
-func (t *AppLogic) ReloadConfig(logOld, logNew logger.T, def Option,
-	opts []Option) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	logOld.LogInfo("Reloading app")
-	if err := logOld.Close(); err != nil {
-		return err
-	}
-	t.set(def, opts)
-	logNew.LogInfo("Reloading complete")
-	return nil
 }

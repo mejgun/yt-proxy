@@ -9,7 +9,7 @@ import (
 	utils "ytproxy/utils"
 )
 
-const appVersion = "2.3.0"
+const appVersion = "2.3.1"
 
 type flagsT struct {
 	version bool

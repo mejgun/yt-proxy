@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	cache_mux "ytproxy/cache/mux"
@@ -26,33 +27,38 @@ func Run(confFile string) error {
 
 	}
 	appLogic := logic.New(def, opts)
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.LogInfo("Bad request", "addr", r.RemoteAddr, "url", r.RequestURI)
-		log.LogDebug("Bad request", "req", r)
-		http.NotFound(w, r)
-	})
-	http.HandleFunc("/play/", func(w http.ResponseWriter, r *http.Request) {
-		appLogic.Run(w, r, log)
-	})
 	shouldWait := make(chan confChan)
-	go signalsCatcher(confFile, log, appLogic, shouldWait)
-	return httpLoop(log, conf, shouldWait)
+	go signalsCatcher(confFile, log, shouldWait)
+	return httpLoop(log, conf, appLogic, shouldWait)
 }
 
-func makeServer(conf config.T) *http.Server {
-	return &http.Server{Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt)}
+func makeServer(conf config.T, log logger.T,
+	appLogic *logic.AppLogic) *http.Server {
+	return &http.Server{
+		Addr: fmt.Sprintf("%s:%d", conf.Host, conf.PortInt),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.HasPrefix(r.RequestURI, "/play/"):
+				appLogic.Run(w, r, log)
+			default:
+				log.LogInfo("Bad request", "addr", r.RemoteAddr, "url", r.RequestURI)
+				log.LogDebug("Bad request", "req", r)
+				http.NotFound(w, r)
+			}
+		})}
 }
 
 type confChan struct {
-	cnf     config.T
-	restart bool
+	cnf      config.T
+	appLogic *logic.AppLogic
+	restart  bool
 }
 
-func httpLoop(log logger.T, conf config.T, ch <-chan confChan) error {
+func httpLoop(log logger.T, conf config.T, appLogic *logic.AppLogic,
+	ch <-chan confChan) error {
 	for {
 		log.LogInfo("Starting web server", "host", conf.Host, "port", conf.PortInt)
-		s := makeServer(conf)
+		s := makeServer(conf, log, appLogic)
 		done := make(chan error)
 		go startHTTP(s, log, done)
 		<-ch
@@ -72,6 +78,7 @@ func httpLoop(log logger.T, conf config.T, ch <-chan confChan) error {
 			return nil
 		}
 		conf = msg.cnf
+		appLogic = msg.appLogic
 	}
 }
 
@@ -134,8 +141,7 @@ func readConfig(confFile string) (config.T, logic.Option, []logic.Option,
 		nil
 }
 
-func signalsCatcher(confFile string, log logger.T, appLogic *logic.AppLogic,
-	ch chan<- confChan) {
+func signalsCatcher(confFile string, log logger.T, ch chan<- confChan) {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint,
 		syscall.SIGHUP,
@@ -150,12 +156,12 @@ func signalsCatcher(confFile string, log logger.T, appLogic *logic.AppLogic,
 				log.LogError("Config reload", "error", err)
 			} else {
 				ch <- confChan{}
-				if err := appLogic.ReloadConfig(log, logNew, def, opts); err != nil {
+				if err := log.Close(); err != nil {
 					log.LogError("log file close", "error", err)
-					ch <- confChan{conf, false}
+					ch <- confChan{config.T{}, nil, false}
 				} else {
+					ch <- confChan{conf, logic.New(def, opts), true}
 					log = logNew
-					ch <- confChan{conf, true}
 				}
 			}
 		case syscall.SIGINT:
@@ -163,7 +169,7 @@ func signalsCatcher(confFile string, log logger.T, appLogic *logic.AppLogic,
 		case syscall.SIGTERM:
 			log.LogWarning("Exiting")
 			ch <- confChan{}
-			if err := appLogic.Shutdown(log); err != nil {
+			if err := log.Close(); err != nil {
 				log.LogError("log file close", "error", err)
 			}
 			ch <- confChan{}

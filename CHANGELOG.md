@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2.3.1 - 2024-10-12
+### Reworked
+- http server create/stop
+
 ## 2.3.0 - 2024-10-12
 ### Reworked
 - logging
