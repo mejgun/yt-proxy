@@ -51,7 +51,7 @@ func New(path string, mp4, m4a []string, getUserAgent string,
 }
 
 type defaultExtractor struct {
-	sync.Mutex
+	mu            sync.Mutex
 	path          string
 	mp4           []*template.Template
 	m4a           []*template.Template
@@ -60,11 +60,15 @@ type defaultExtractor struct {
 }
 
 func (t *defaultExtractor) GetUserAgent(log logger.T) (string, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.runCmd([]string{t.getUserAgent}, log)
 }
 
 func (t *defaultExtractor) Extract(req extractor.RequestT, log logger.T,
 ) (extractor.ResultT, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	var (
 		buf        []string
 		bufOptions []string
@@ -106,8 +110,6 @@ func (t *defaultExtractor) Extract(req extractor.RequestT, log logger.T,
 }
 
 func (t *defaultExtractor) runCmd(args []string, log logger.T) (string, error) {
-	t.Lock()
-	defer t.Unlock()
 	log = logger_mux.NewLayer(log, "Extractor")
 	cmd := exec.Command(t.path, args...)
 	var stdout, stderr bytes.Buffer

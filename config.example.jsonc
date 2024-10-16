@@ -18,7 +18,7 @@
     // sites (hosts) list.
     // if not empty, only the specified sites will work,
     // others will be forbidden.
-    // see sub-config part for a detailed explaination.
+    // see sub-config part for a detailed explanation.
     // DEFAULT []
     "sites": [],
     // logger config
@@ -56,7 +56,7 @@
         // DEFAULT "corrupted.mp4"
         "error-video": "corrupted.mp4",
         // audio file that will be played on audio stream errors
-        // dwnlded here youtu.be/_b8KPiT1PxI (suggest your options)
+        // downloaded here youtu.be/_b8KPiT1PxI (suggest your options)
         // DEFAULT "failed.m4a"
         "error-audio": "failed.m4a",
         // how to set streamer's user-agent
